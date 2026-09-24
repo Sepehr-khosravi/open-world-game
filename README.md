@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎮 Sorosh Game
+# 🎮 Simple Game
 
 **یه بازی سه‌بعدی تحت وب با Three.js و Cannon-ES**
 
