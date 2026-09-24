@@ -15,7 +15,7 @@
 
 ## 📖 درباره‌ی پروژه
 
-**Sorosh Game** یه بازی سه‌بعدی تحت وب هست که با هدف ساخت یه محیط **مقیاس‌پذیر و ماژولار** طراحی شده. تو این بازی می‌تونی:
+**Game** یه بازی سه‌بعدی تحت وب هست که با هدف ساخت یه محیط **مقیاس‌پذیر و ماژولار** طراحی شده. تو این بازی می‌تونی:
 
 - 🏙️ تو یه شهر خالی با خیابون‌ها و ساختمون‌ها راه بری
 - 🌊 دور تا دور شهر رو آب گرفته با ساحل شنی
@@ -61,7 +61,7 @@
 
 ```bash
 git clone <repository-url>
-cd sorosh_game
+cd <directory-name>(repository name)
 npm install
 npm run dev
 ```
@@ -110,7 +110,7 @@ npm run preview
 ## 📁 ساختار پروژه
 
 ```
-sorosh_game/
+game/
 ├── index.html
 ├── package.json
 ├── vite.config.js
