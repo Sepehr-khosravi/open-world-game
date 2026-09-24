@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>سوروش گیم</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game-canvas" tabindex="0"></canvas>
+
+      <!-- صفحه لودینگ -->
+      <div id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">در حال بارگذاری...</div>
+      </div>
+
+      <!-- صفحه انتخاب شخصیت -->
+      <div id="character-select">
+        <div class="select-title">یک شخصیت انتخاب کن</div>
+
+        <div class="select-stage">
+          <button class="arrow" id="prev-char">‹</button>
+          <canvas id="preview-canvas"></canvas>
+          <button class="arrow" id="next-char">›</button>
+        </div>
+
+        <div class="select-info">
+          <div class="char-name" id="char-name">Character A</div>
+          <button id="start-btn">شروع بازی</button>
+        </div>
+      </div>
+
+      <!-- راهنما -->
+      <div id="help">
+        <div>WASD — حرکت</div>
+        <div>J — مشت | K — لگد</div>
+        <div>کلیک — شروع</div>
+        <div>Esc — منو</div>
+      </div>
+
+        <div id="fps-display">FPS: --</div>
+
+      <!-- منوی تنظیمات -->
+      <div id="settings-menu">
+        <div class="menu-box">
+          <h2>تنظیمات</h2>
+
+          <div class="menu-item">
+            <label for="sensitivity">حساسیت موس</label>
+            <div class="slider-row">
+              <input
+                type="range"
+                id="sensitivity"
+                min="0.5"
+                max="5"
+                step="0.1"
+                value="2"
+              />
+              <span id="sensitivity-value">2.0</span>
+            </div>
+          </div>
+
+          <button id="close-menu">بازگشت به بازی</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

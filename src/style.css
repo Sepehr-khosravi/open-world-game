@@ -1,0 +1,371 @@
+/* ============ Reset ============ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0b0e13;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #fff;
+  user-select: none;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+
+/* ============ Loading ============ */
+#loading {
+  position: absolute;
+  inset: 0;
+  background: #0b0e13;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: opacity 0.5s ease;
+}
+
+#loading.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.spinner {
+  width: 64px;
+  height: 64px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #6ec1ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: #6ec1ff;
+  font-size: 16px;
+}
+
+/* ============ Help ============ */
+#help {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #ccc;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  z-index: 10;
+}
+
+/* ============ Settings Menu ============ */
+#settings-menu {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(10px);
+}
+
+#settings-menu.open {
+  display: flex;
+}
+
+.menu-box {
+  background: rgba(20, 25, 35, 0.98);
+  padding: 36px 40px;
+  border-radius: 16px;
+  min-width: 340px;
+  border: 1px solid rgba(110, 193, 255, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.menu-box h2 {
+  margin-bottom: 24px;
+  color: #6ec1ff;
+  font-size: 22px;
+  text-align: center;
+}
+
+.menu-item {
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.menu-item label {
+  font-size: 14px;
+  color: #aaa;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.slider-row input[type="range"] {
+  flex: 1;
+  accent-color: #6ec1ff;
+  cursor: pointer;
+}
+
+#sensitivity-value {
+  min-width: 36px;
+  text-align: left;
+  color: #6ec1ff;
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+}
+
+#close-menu {
+  width: 100%;
+  padding: 14px;
+  background: #6ec1ff;
+  color: #0b0e13;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#close-menu:hover {
+  background: #8ed1ff;
+}
+
+#close-menu:active {
+  transform: scale(0.98);
+}
+
+/* ============ Character Select ============ */
+#character-select {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #0b0e13 0%, #1a2638 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 90;
+  gap: 24px;
+  padding: 40px;
+  transition: opacity 0.4s ease;
+}
+
+#character-select.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.select-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #6ec1ff;
+  letter-spacing: 0.5px;
+}
+
+.select-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+}
+
+#preview-canvas {
+  width: 360px;
+  height: 420px;
+  border-radius: 20px;
+  background: radial-gradient(circle at 50% 40%, #223045 0%, #0e141d 100%);
+  border: 2px solid rgba(110, 193, 255, 0.25);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  display: block;
+}
+
+.arrow {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(110, 193, 255, 0.12);
+  border: 2px solid rgba(110, 193, 255, 0.4);
+  color: #6ec1ff;
+  font-size: 32px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.arrow:hover {
+  background: rgba(110, 193, 255, 0.25);
+  transform: scale(1.08);
+}
+
+.arrow:active {
+  transform: scale(0.95);
+}
+
+.select-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.char-name {
+  font-size: 20px;
+  color: #e0e0e0;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+#start-btn {
+  padding: 16px 60px;
+  background: #6ec1ff;
+  color: #0b0e13;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 8px 24px rgba(110, 193, 255, 0.3);
+}
+
+#start-btn:hover {
+  background: #8ed1ff;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(110, 193, 255, 0.4);
+}
+
+#start-btn:active {
+  transform: translateY(0);
+}
+
+/* === Weapon Wheel === */
+#weapon-wheel {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none;
+}
+
+.wheel-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+.wheel-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 400px;
+  height: 400px;
+  margin-left: -200px;
+  margin-top: -200px;
+  border-radius: 50%;
+  border: 2px dashed rgba(110, 193, 255, 0.3);
+}
+
+.wheel-item {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  margin-left: -40px;
+  margin-top: -40px;
+  border-radius: 50%;
+  background: rgba(20, 30, 45, 0.9);
+  border: 2px solid rgba(110, 193, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.wheel-item.selected {
+  background: rgba(110, 193, 255, 0.35);
+  border-color: #6ec1ff;
+  transform: scale(1.15);
+  box-shadow: 0 0 24px rgba(110, 193, 255, 0.6);
+}
+
+.wheel-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.wheel-info {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, calc(-50% + 40px));
+  text-align: center;
+  color: #fff;
+}
+
+.wheel-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #6ec1ff;
+  margin-bottom: 6px;
+}
+
+.wheel-hint {
+  font-size: 12px;
+  color: #999;
+}
+
+#fps-display {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #6ec1ff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  z-index: 10;
+}

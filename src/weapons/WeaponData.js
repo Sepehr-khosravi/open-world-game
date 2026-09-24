@@ -1,0 +1,36 @@
+export const WEAPONS = [
+  {
+    id: 'fist',
+    name: 'دست',
+    icon: '✊',
+    holdAnim: 'holding-right', // انیمیشن وقتی در دست داری
+    fireAnim: 'attack-melee-right',
+    isMelee: true,
+    damage: 10,
+    fireRate: 0.4,
+  },
+  {
+    id: 'pistol',
+    name: 'کلت',
+    icon: '🔫',
+    holdAnim: 'holding-right',
+    fireAnim: 'holding-right-shoot',
+    isMelee: false,
+    damage: 25,
+    fireRate: 0.3,
+    bulletSpeed: 80,
+    range: 100,
+  },
+  {
+    id: 'rifle',
+    name: 'تفنگ',
+    icon: '🎯',
+    holdAnim: 'holding-both',
+    fireAnim: 'holding-both-shoot',
+    isMelee: false,
+    damage: 40,
+    fireRate: 0.1,
+    bulletSpeed: 120,
+    range: 200,
+  },
+];
