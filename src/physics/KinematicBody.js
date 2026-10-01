@@ -4,29 +4,28 @@ export class KinematicBody {
   constructor(body, options = {}) {
     this.body = body;
 
+    // =========================
+    // Movement
+    // =========================
+
     this.maxSpeed = options.maxSpeed ?? 7;
 
-    // === پارامترهای ramp-up ===
-    // x: مقدار افزایش سرعت (گام اولیه)
-    // y: فاصله‌ی زمانی بین گام‌ها (ثانیه)
-    // yMin: حداقل y (وقتی به این رسید، دیگه کمتر نمی‌شه)
-    // rampDuration: چند ثانیه طول بکشه تا y به yMin برسه
-    this.x = options.x ?? 0.5;              // گام اولیه‌ی سرعت (m/s)
-    this.y = options.y ?? 0.25;             // فاصله‌ی اولیه (ثانیه)
-    this.yMin = options.yMin ?? 0.05;       // حداقل فاصله (خیلی سریع)
-    this.rampDuration = options.rampDuration ?? 2.0; // ثانیه تا y به yMin برسه
+    // مدت تقریبی رسیدن از 0 به ~90% سرعت
+    this.accelTime = options.accelTime ?? 0.4;
 
-    // === پارامترهای کاهش (توقف) ===
+    // مدت تقریبی توقف از سرعت فعلی تا ~10%
     this.decelTime = options.decelTime ?? 0.3;
 
-    // === وضعیت داخلی ===
+    // وقتی جهت عوض می‌شود، سرعت در جهت جدید
+    // به صورت نرم اصلاح می‌شود.
+    this.turnSpeed = options.turnSpeed ?? 14;
+
+    // =========================
+    // State
+    // =========================
+
     this.desiredDirection = new CANNON.Vec3(0, 0, 0);
     this.wantsToMove = false;
-
-    // تایمر ramp
-    this.rampTimer = 0;       // چقدر از زمان ramp گذشته
-    this.stepTimer = 0;       // تایمر بین گام‌ها
-    this.currentStep = 0;     // گام فعلی (x چند بار اضافه شده)
   }
 
   setDirection(dx, dz, wantsToMove = true) {
@@ -34,67 +33,87 @@ export class KinematicBody {
       this.wantsToMove = false;
       return;
     }
-    const len = Math.hypot(dx, dz);
-    if (len < 0.001) {
+
+    const length = Math.hypot(dx, dz);
+
+    if (length < 0.0001) {
       this.wantsToMove = false;
       return;
     }
-    // جهت نرمالایز شده
-    this.desiredDirection.set(dx / len, 0, dz / len);
+
+    this.desiredDirection.set(
+      dx / length,
+      0,
+      dz / length
+    );
+
     this.wantsToMove = true;
   }
 
   update(dt) {
     const vel = this.body.velocity;
 
+    // جلوگیری از مشکلات در صورت lag / tab switch
+    dt = Math.min(dt, 0.05);
+
     if (this.wantsToMove) {
-      // === ramp-up ===
-      // y فعلی رو از روی زمان حساب کن
-      const progress = Math.min(1, this.rampTimer / this.rampDuration);
-      // y از y شروع می‌شه و خطی به yMin می‌رسه
-      const currentY = this.y + (this.yMin - this.y) * progress;
+      const targetSpeed = this.maxSpeed;
 
-      // تایمر گام
-      this.stepTimer += dt;
+      const targetX =
+        this.desiredDirection.x * targetSpeed;
 
-      // اگه وقت گام جدید رسیده، سرعت هدف رو زیاد کن
-      if (this.stepTimer >= currentY) {
-        this.stepTimer = 0;
-        this.currentStep++;
+      const targetZ =
+        this.desiredDirection.z * targetSpeed;
+
+      /*
+       * شتاب:
+       *
+       * اگر accelTime = 0.4 باشد،
+       * بعد از حدود 0.4 ثانیه به ~90% سرعت می‌رسیم.
+       */
+      const accelRate =
+        -Math.log(0.1) / Math.max(this.accelTime, 0.001);
+
+      const accelT =
+        1 - Math.exp(-accelRate * dt);
+
+      /*
+       * اگر در حال تغییر جهت باشیم،
+       * turnSpeed باعث می‌شود تغییر جهت سریع ولی نرم باشد.
+       */
+      const turnT =
+        1 - Math.exp(-this.turnSpeed * dt);
+
+      vel.x += (targetX - vel.x) * accelT;
+      vel.z += (targetZ - vel.z) * turnT;
+    } else {
+      /*
+       * ترمز مستقل از FPS
+       */
+      const decelRate =
+        -Math.log(0.1) / Math.max(this.decelTime, 0.001);
+
+      const decelT =
+        1 - Math.exp(-decelRate * dt);
+
+      vel.x += (0 - vel.x) * decelT;
+      vel.z += (0 - vel.z) * decelT;
+
+      // جلوگیری از velocity های خیلی کوچک
+      if (Math.abs(vel.x) < 0.01) {
+        vel.x = 0;
       }
 
-      // زمان ramp
-      this.rampTimer += dt;
-
-      // سرعت هدف بر اساس گام فعلی
-      const targetSpeed = Math.min(this.maxSpeed, this.currentStep * this.x);
-
-      // سرعت هدف در جهت مورد نظر
-      const targetVx = this.desiredDirection.x * targetSpeed;
-      const targetVz = this.desiredDirection.z * targetSpeed;
-
-      // ⚠️ نزدیک شدن نرم به هدف (lerp) تا پرش نداشته باشیم
-      // از lerp برای هر فریم استفاده می‌کنیم که نرم باشه
-      const t = 1 - Math.exp(-8 * dt);
-      vel.x += (targetVx - vel.x) * t;
-      vel.z += (targetVz - vel.z) * t;
-    } else {
-      // === توقف نرم ===
-      // ریست ramp
-      this.rampTimer = 0;
-      this.stepTimer = 0;
-      this.currentStep = 0;
-
-      // کاهش نمایی
-      const k = -Math.log(0.1) / this.decelTime;
-      const t = 1 - Math.exp(-k * dt);
-
-      vel.x += (0 - vel.x) * t;
-      vel.z += (0 - vel.z) * t;
-
-      // dead zone
-      if (Math.abs(vel.x) < 0.02) vel.x = 0;
-      if (Math.abs(vel.z) < 0.02) vel.z = 0;
+      if (Math.abs(vel.z) < 0.01) {
+        vel.z = 0;
+      }
     }
+  }
+
+  getHorizontalSpeed() {
+    return Math.hypot(
+      this.body.velocity.x,
+      this.body.velocity.z
+    );
   }
 }
