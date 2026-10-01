@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Measure Cars</title></head>
+<body>
+<div id="out" style="font-family:monospace;padding:20px;color:#0f0;background:#111;">Loading...</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+const loader = new GLTFLoader();
+const base = '/models/car/Models/GLB%20format';
+
+const cars = [
+  'sedan', 'sedan-sports', 'suv', 'suv-luxury',
+  'hatchback-sports', 'taxi', 'police', 'ambulance',
+  'delivery', 'delivery-flat', 'box', 'truck', 'truck-flat',
+  'van', 'garbage-truck', 'firetruck', 'tractor',
+  'tractor-police', 'tractor-shovel', 'race', 'race-future',
+  'kart-oobi', 'kart-oodi', 'kart-ooli', 'kart-oopi', 'kart-oozi',
+  'cone', 'cone-flat',
+  'wheel-default', 'wheel-dark', 'wheel-racing',
+];
+
+const results = [];
+
+async function run() {
+  for (const name of cars) {
+    try {
+      const gltf = await loader.loadAsync(`${base}/${name}.glb`);
+      const model = gltf.scene;
+      model.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      results.push({
+        name,
+        sx: size.x.toFixed(3),
+        sy: size.y.toFixed(3),
+        sz: size.z.toFixed(3),
+        minY: box.min.y.toFixed(3),
+      });
+    } catch (e) {
+      results.push({ name, error: e.message });
+    }
+  }
+  console.table(results);
+  document.getElementById('out').innerHTML =
+    '<pre>' + JSON.stringify(results, null, 2) + '</pre>';
+}
+run();
+</script>
+</body>
+</html>

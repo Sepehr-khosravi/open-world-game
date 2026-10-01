@@ -1,17 +1,32 @@
 import * as THREE from 'three';
-import * as CANNON from 'cannon-es';
 import { Lighting } from './Lighting.js';
-import { Water } from './Water.js';
 import { City } from './City.js';
 
 export class World {
-  constructor(physics) {
-    this.group = new THREE.Group();
+  constructor(physics, assets) {
+    this.physics = physics;
+    this.assets = assets;
 
-    this.group.add(new Lighting().group);
-    this.group.add(new Water().mesh);
-    this.group.add(new City(physics).group);
+    this.group = new THREE.Group();
+    this.group.name = 'World';
+
+    this.lighting = new Lighting();
+    this.group.add(this.lighting.group);
+
+    this.city = new City(physics, assets);
+    this.group.add(this.city.group);
   }
 
-  update(dt) {}
+  async load() {
+    try {
+      await this.city.load();
+    } catch (error) {
+      console.error('[World] City loading failed:', error);
+      throw error;
+    }
+  }
+
+  update(dt) {
+    if (this.lighting && this.lighting.update) this.lighting.update(dt);
+  }
 }

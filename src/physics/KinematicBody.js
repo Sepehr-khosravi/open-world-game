@@ -4,111 +4,165 @@ export class KinematicBody {
   constructor(body, options = {}) {
     this.body = body;
 
-    // =========================
-    // Movement
-    // =========================
+    this.maxSpeed =
+      options.maxSpeed ?? 7;
 
-    this.maxSpeed = options.maxSpeed ?? 7;
+    this.accelTime =
+      options.accelTime ?? 0.2;
 
-    // مدت تقریبی رسیدن از 0 به ~90% سرعت
-    this.accelTime = options.accelTime ?? 0.4;
+    this.decelTime =
+      options.decelTime ?? 0.12;
 
-    // مدت تقریبی توقف از سرعت فعلی تا ~10%
-    this.decelTime = options.decelTime ?? 0.3;
+    this.desiredDirection =
+      new CANNON.Vec3(
+        0,
+        0,
+        0
+      );
 
-    // وقتی جهت عوض می‌شود، سرعت در جهت جدید
-    // به صورت نرم اصلاح می‌شود.
-    this.turnSpeed = options.turnSpeed ?? 14;
-
-    // =========================
-    // State
-    // =========================
-
-    this.desiredDirection = new CANNON.Vec3(0, 0, 0);
     this.wantsToMove = false;
   }
 
-  setDirection(dx, dz, wantsToMove = true) {
+  // ============================================================
+  // DIRECTION
+  // ============================================================
+
+  setDirection(
+    dx,
+    dz,
+    wantsToMove = true
+  ) {
     if (!wantsToMove) {
       this.wantsToMove = false;
       return;
     }
 
-    const length = Math.hypot(dx, dz);
+    const len =
+      Math.hypot(dx, dz);
 
-    if (length < 0.0001) {
+    if (len < 0.0001) {
       this.wantsToMove = false;
       return;
     }
 
     this.desiredDirection.set(
-      dx / length,
+      dx / len,
       0,
-      dz / length
+      dz / len
     );
 
     this.wantsToMove = true;
   }
 
-  update(dt) {
-    const vel = this.body.velocity;
+  // ============================================================
+  // UPDATE
+  // ============================================================
 
-    // جلوگیری از مشکلات در صورت lag / tab switch
-    dt = Math.min(dt, 0.05);
+  update(dt) {
+    dt =
+      Math.min(
+        dt,
+        0.05
+      );
+
+    const vel =
+      this.body.velocity;
+
+    // ==========================================================
+    // MOVING
+    // ==========================================================
 
     if (this.wantsToMove) {
-      const targetSpeed = this.maxSpeed;
-
       const targetX =
-        this.desiredDirection.x * targetSpeed;
+        this.desiredDirection.x *
+        this.maxSpeed;
 
       const targetZ =
-        this.desiredDirection.z * targetSpeed;
+        this.desiredDirection.z *
+        this.maxSpeed;
 
-      /*
-       * شتاب:
-       *
-       * اگر accelTime = 0.4 باشد،
-       * بعد از حدود 0.4 ثانیه به ~90% سرعت می‌رسیم.
-       */
-      const accelRate =
-        -Math.log(0.1) / Math.max(this.accelTime, 0.001);
+      const rate =
+        -Math.log(0.1) /
+        Math.max(
+          this.accelTime,
+          0.001
+        );
 
-      const accelT =
-        1 - Math.exp(-accelRate * dt);
+      const t =
+        1 -
+        Math.exp(
+          -rate * dt
+        );
 
-      /*
-       * اگر در حال تغییر جهت باشیم،
-       * turnSpeed باعث می‌شود تغییر جهت سریع ولی نرم باشد.
-       */
-      const turnT =
-        1 - Math.exp(-this.turnSpeed * dt);
+      vel.x +=
+        (
+          targetX -
+          vel.x
+        ) * t;
 
-      vel.x += (targetX - vel.x) * accelT;
-      vel.z += (targetZ - vel.z) * turnT;
-    } else {
-      /*
-       * ترمز مستقل از FPS
-       */
-      const decelRate =
-        -Math.log(0.1) / Math.max(this.decelTime, 0.001);
+      vel.z +=
+        (
+          targetZ -
+          vel.z
+        ) * t;
+    }
 
-      const decelT =
-        1 - Math.exp(-decelRate * dt);
+    // ==========================================================
+    // STOPPING
+    // ==========================================================
 
-      vel.x += (0 - vel.x) * decelT;
-      vel.z += (0 - vel.z) * decelT;
+    else {
+      const rate =
+        -Math.log(0.1) /
+        Math.max(
+          this.decelTime,
+          0.001
+        );
 
-      // جلوگیری از velocity های خیلی کوچک
-      if (Math.abs(vel.x) < 0.01) {
+      const t =
+        1 -
+        Math.exp(
+          -rate * dt
+        );
+
+      vel.x +=
+        (
+          0 -
+          vel.x
+        ) * t;
+
+      vel.z +=
+        (
+          0 -
+          vel.z
+        ) * t;
+
+      if (
+        Math.abs(vel.x) <
+        0.01
+      ) {
         vel.x = 0;
       }
 
-      if (Math.abs(vel.z) < 0.01) {
+      if (
+        Math.abs(vel.z) <
+        0.01
+      ) {
         vel.z = 0;
       }
     }
+
+    /*
+     * DO NOT TOUCH vel.y HERE.
+     *
+     * Y is exclusively controlled by Cannon gravity,
+     * jumping and collision resolution.
+     */
   }
+
+  // ============================================================
+  // HORIZONTAL SPEED
+  // ============================================================
 
   getHorizontalSpeed() {
     return Math.hypot(

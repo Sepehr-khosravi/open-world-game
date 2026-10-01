@@ -1,0 +1,455 @@
+import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
+
+/*
+ * ============================================================
+ * VEHICLE — final fix
+ * ============================================================
+ *
+ * KEY INSIGHT:
+ *
+ *   The chassisBody must NOT collide with anything.
+ *   collisionResponse = false.
+ *
+ *   Only the RaycastVehicle wheels interact with the ground
+ *   (via raycasts). This prevents:
+ *     - the box sinking into the ground
+ *     - the box getting stuck on curbs/buildings
+ *     - the "suspended then slam into ground" glitch
+ */
+
+const CAR_SPECS = {
+  'sedan':            { length: 3.0, mass: 200 },
+  'sedan-sports':     { length: 3.0, mass: 180 },
+  'hatchback-sports': { length: 3.0, mass: 170 },
+  'taxi':             { length: 3.0, mass: 200 },
+  'police':           { length: 3.0, mass: 220 },
+  'box':              { length: 3.0, mass: 200 },
+  'van':              { length: 3.5, mass: 280 },
+  'suv':              { length: 3.5, mass: 300 },
+  'suv-luxury':       { length: 3.5, mass: 320 },
+  'delivery':         { length: 4.0, mass: 400 },
+  'ambulance':        { length: 4.5, mass: 500 },
+  'truck':            { length: 4.5, mass: 500 },
+};
+
+export class Vehicle {
+  constructor({ bodyModel, physics, x = 0, z = 0, rotationY = 0, name = 'sedan' }) {
+    this.physics = physics;
+    this.isDriving = false;
+    this.name = name;
+
+    const spec = CAR_SPECS[name] || { length: 3.0, mass: 200 };
+    const targetLength = spec.length;
+    const mass = spec.mass;
+
+    // ============================================================
+    // 1. Visual normalization
+    // ============================================================
+
+    this.group = new THREE.Group();
+    this.group.name = 'Vehicle';
+
+    const holder = new THREE.Group();
+    this.group.add(holder);
+
+    const visual = bodyModel.clone(true);
+    visual.position.set(0, 0, 0);
+    visual.rotation.set(0, 0, 0);
+    visual.scale.set(1, 1, 1);
+
+    holder.add(visual);
+    holder.updateMatrixWorld(true);
+
+    let box = new THREE.Box3().setFromObject(visual);
+    let size = new THREE.Vector3();
+    box.getSize(size);
+
+    const isAlongX = size.x > size.z;
+
+    if (isAlongX) {
+      visual.rotation.y = Math.PI / 2;
+      holder.updateMatrixWorld(true);
+      box.setFromObject(visual);
+      box.getSize(size);
+    }
+
+    const s = size.z > 0 ? targetLength / size.z : 1;
+    visual.scale.setScalar(s);
+
+    holder.updateMatrixWorld(true);
+    box.setFromObject(visual);
+    const finalSize = new THREE.Vector3();
+    box.getSize(finalSize);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    // Physics dims (independent of visual, tight)
+    const chassisL = finalSize.z;
+    const chassisW = finalSize.x * 0.9;
+    const chassisH = finalSize.y * 0.5;
+
+    this.chassisL = chassisL;
+    this.chassisW = chassisW;
+    this.chassisH = chassisH;
+
+    // Wheel / suspension geometry
+    const wheelRadius = chassisL * 0.17;
+    const restLength = chassisL * 0.06;
+    const chassisY = wheelRadius + restLength;
+
+    this.wheelRadius = wheelRadius;
+    this.chassisY = chassisY;
+
+    // ============================================================
+    // 2. Wheel pivots
+    // ============================================================
+
+    visual.updateMatrixWorld(true);
+    const visualInv = new THREE.Matrix4().copy(visual.matrixWorld).invert();
+
+    const rawWheels = [];
+
+    visual.traverse((n) => {
+      const nm = (n.name || '').toLowerCase();
+      const isWheel = nm.includes('wheel') || nm.includes('tyre') || nm.includes('tire');
+      if (!isWheel) return;
+
+      const reject = ['spare', 'extra', 'carrier', 'mount', 'cover'];
+      for (const r of reject) if (nm.includes(r)) return;
+
+      const worldPos = new THREE.Vector3();
+      n.getWorldPosition(worldPos);
+      const localPos = worldPos.clone().applyMatrix4(visualInv);
+
+      rawWheels.push({ node: n, local: localPos, name: nm });
+    });
+
+    console.log(`[Vehicle ${name}] candidates:`, rawWheels.map(w => w.name));
+
+    const halfW = finalSize.x / 2;
+    const threshold = halfW * 0.35;
+
+    const sides = rawWheels.filter(w => Math.abs(w.local.x) > threshold);
+    const pool = sides.length >= 4 ? sides : rawWheels;
+
+    const front = pool.filter(w => w.local.z > 0).sort((a, b) => b.local.z - a.local.z);
+    const rear  = pool.filter(w => w.local.z <= 0).sort((a, b) => a.local.z - b.local.z);
+
+    const pickLeft  = (arr) => arr.filter(w => w.local.x < 0).sort((a, b) => a.local.x - b.local.x)[0];
+    const pickRight = (arr) => arr.filter(w => w.local.x > 0).sort((a, b) => b.local.x - a.local.x)[0];
+
+    const picked = [
+      { wheel: pickLeft(front),  front: true,  corner: 'FL' },
+      { wheel: pickRight(front), front: true,  corner: 'FR' },
+      { wheel: pickLeft(rear),   front: false, corner: 'RL' },
+      { wheel: pickRight(rear),  front: false, corner: 'RR' },
+    ].filter(p => p.wheel);
+
+    const spinAxis = isAlongX ? 'z' : 'x';
+    const spinSign = isAlongX ? -1 : 1;
+
+    this._wheelPivots = [];
+    this._wheelSpin = 0;
+
+    for (const p of picked) {
+      const wheelNode = p.wheel.node;
+      const parent = wheelNode.parent;
+      if (!parent) continue;
+
+      const pivot = new THREE.Group();
+      pivot.name = `wheel-pivot-${p.corner}`;
+      pivot.rotation.order = 'YXZ';
+
+      pivot.position.copy(wheelNode.position);
+      pivot.quaternion.copy(wheelNode.quaternion);
+      pivot.scale.copy(wheelNode.scale);
+
+      wheelNode.position.set(0, 0, 0);
+      wheelNode.quaternion.identity();
+      wheelNode.scale.set(1, 1, 1);
+
+      parent.add(pivot);
+      pivot.add(wheelNode);
+
+      this._wheelPivots.push({
+        pivot,
+        wheelNode,
+        isFront: p.front,
+        corner: p.corner,
+        spinAxis,
+        spinSign,
+        baseQuat: pivot.quaternion.clone(),
+      });
+    }
+
+    console.log(`[Vehicle ${name}] picked:`, this._wheelPivots.map(w => w.corner));
+
+    // Center visual: bottom sits at chassis bottom (-chassisH/2)
+    visual.position.x -= center.x;
+    visual.position.z -= center.z;
+    visual.position.y -= center.y;
+    visual.position.y += (finalSize.y / 2) - (chassisH / 2);
+
+    visual.traverse(n => {
+      if (!n.isMesh) return;
+      n.castShadow = true;
+      n.receiveShadow = true;
+      n.frustumCulled = false;
+
+      if (n.material) {
+        const mats = Array.isArray(n.material) ? n.material : [n.material];
+        for (const m of mats) {
+          if (m.transparent && m.opacity < 1.0) {
+            m.depthWrite = false;
+            m.side = THREE.DoubleSide;
+          }
+        }
+      }
+    });
+
+    // ============================================================
+    // 3. Physics chassis — with collisionResponse = false
+    // ============================================================
+
+    const chassisShape = new CANNON.Box(new CANNON.Vec3(chassisW / 2, chassisH / 2, chassisL / 2));
+
+    const chassisBody = new CANNON.Body({
+      mass,
+      material: physics.groundMaterial,
+      shape: chassisShape,
+    });
+
+    /*
+     * ============================================================
+     * CRITICAL FIX:
+     * ============================================================
+     *
+     * The chassis box MUST NOT interact with the physics world
+     * directly. Otherwise it collides with the ground plane,
+     * curbs, and buildings — causing:
+     *   - sinking into the ground
+     *   - getting stuck
+     *   - glitchy suspended motion
+     *
+     * Only the RaycastVehicle wheels (raycasts) touch the ground.
+     */
+    chassisBody.collisionResponse = false;
+
+    // Start exactly at wheel-contact height, so no fall
+    chassisBody.position.set(x, chassisY, z);
+    chassisBody.angularDamping = 0.95;
+    chassisBody.linearDamping = 0.02;
+
+    if (rotationY !== 0) {
+      chassisBody.quaternion.setFromEuler(0, rotationY, 0);
+    }
+
+    // ============================================================
+    // 4. RaycastVehicle
+    // ============================================================
+
+    const vehicle = new CANNON.RaycastVehicle({
+      chassisBody,
+      indexRightAxis: 0,
+      indexUpAxis: 1,
+      indexForwardAxis: 2,
+    });
+
+    const wheelWidth = chassisL * 0.05;
+
+    const wheelOptions = {
+      radius: wheelRadius,
+      directionLocal: new CANNON.Vec3(0, -1, 0),
+      suspensionStiffness: 100,
+      suspensionRestLength: restLength,
+      frictionSlip: 4.0,
+      dampingRelaxation: 4.0,
+      dampingCompression: 6.0,
+      maxSuspensionForce: 500000,
+      rollInfluence: 0.005,
+      axleLocal: new CANNON.Vec3(1, 0, 0),
+      chassisConnectionPointLocal: new CANNON.Vec3(),
+      maxSuspensionTravel: restLength * 0.5,
+      customSlidingRotationalSpeed: -30,
+      useCustomSlidingRotationalSpeed: true,
+    };
+
+    const halfWheelX = chassisW / 2 + wheelWidth * 0.2;
+    const halfWheelZ = chassisL / 2 - wheelRadius * 0.6;
+
+    const wheelPositions = [
+      { x: -halfWheelX, z:  halfWheelZ },
+      { x:  halfWheelX, z:  halfWheelZ },
+      { x: -halfWheelX, z: -halfWheelZ },
+      { x:  halfWheelX, z: -halfWheelZ },
+    ];
+
+    for (const p of wheelPositions) {
+      wheelOptions.chassisConnectionPointLocal.set(p.x, 0, p.z);
+      vehicle.addWheel(wheelOptions);
+    }
+
+    vehicle.addToWorld(physics.world);
+
+    // ============================================================
+    // 5. State
+    // ============================================================
+
+    this.vehicle = vehicle;
+    this.chassisBody = chassisBody;
+
+    this.gears = [
+      { maxSpeed:  4, force: 0.35 },
+      { maxSpeed:  8, force: 0.28 },
+      { maxSpeed: 13, force: 0.22 },
+      { maxSpeed: 19, force: 0.16 },
+      { maxSpeed: 28, force: 0.10 },
+    ];
+
+    this.maxForce = 3000;
+    this.maxBrake = 80;
+    this.maxSteer = 0.5;
+
+    this._steerValue = 0;
+    this._engineForce = 0;
+    this._brakeForce = 4;
+
+    this._qSteer = new THREE.Quaternion();
+    this._qSpin  = new THREE.Quaternion();
+    this._qTotal = new THREE.Quaternion();
+
+    this._axisY = new THREE.Vector3(0, 1, 0);
+    this._axisX = new THREE.Vector3(1, 0, 0);
+
+    this.update(0);
+  }
+
+  setInput(keys, currentSpeed = 0) {
+    if (!this.isDriving) return;
+
+    const forward = keys['w'] || keys['arrowup'];
+    const backward = keys['s'] || keys['arrowdown'];
+    const left = keys['a'] || keys['arrowleft'];
+    const right = keys['d'] || keys['arrowright'];
+    const handbrake = keys[' '];
+
+    const spd = Math.abs(currentSpeed);
+
+    let gearIndex = 0;
+    for (let i = 0; i < this.gears.length; i++) {
+      if (spd < this.gears[i].maxSpeed) { gearIndex = i; break; }
+      gearIndex = i;
+    }
+    const gear = this.gears[gearIndex];
+
+    if (forward) {
+      this._engineForce = -this.maxForce * gear.force;
+      this._brakeForce = 0;
+    } else if (backward) {
+      this._engineForce = this.maxForce * 0.4;
+      this._brakeForce = 0;
+    } else {
+      this._engineForce = 0;
+      this._brakeForce = handbrake ? this.maxBrake : 6;
+    }
+
+    const targetSteer = left ? this.maxSteer : (right ? -this.maxSteer : 0);
+    this._steerValue += (targetSteer - this._steerValue) * 0.25;
+
+    this.vehicle.setSteeringValue(this._steerValue, 0);
+    this.vehicle.setSteeringValue(this._steerValue, 1);
+
+    const perWheel = this._engineForce / 4;
+    this.vehicle.applyEngineForce(perWheel, 0);
+    this.vehicle.applyEngineForce(perWheel, 1);
+    this.vehicle.applyEngineForce(perWheel, 2);
+    this.vehicle.applyEngineForce(perWheel, 3);
+
+    for (let i = 0; i < 4; i++) {
+      this.vehicle.setBrake(this._brakeForce, i);
+    }
+  }
+
+  update(dt) {
+    const p = this.chassisBody.position;
+    const q = this.chassisBody.quaternion;
+
+    this.group.position.set(p.x, p.y, p.z);
+    this.group.quaternion.set(q.x, q.y, q.z, q.w);
+
+    const v = this.chassisBody.velocity;
+    const fwd = this.getForwardVector();
+    const forwardSpeed = v.x * fwd.x + v.z * fwd.z;
+
+    this._wheelSpin += (forwardSpeed * dt) / this.wheelRadius;
+
+    for (const w of this._wheelPivots) {
+      this._qSpin.setFromAxisAngle(this._axisX, w.spinSign * this._wheelSpin);
+
+      const steer = w.isFront ? this._steerValue : 0;
+      this._qSteer.setFromAxisAngle(this._axisY, steer);
+
+      this._qTotal.copy(w.baseQuat);
+      this._qTotal.multiply(this._qSteer);
+      this._qTotal.multiply(this._qSpin);
+
+      w.pivot.quaternion.copy(this._qTotal);
+    }
+  }
+
+  getPosition() {
+    const p = this.chassisBody.position;
+    return new THREE.Vector3(p.x, p.y, p.z);
+  }
+
+  getSpeed() {
+    const v = this.chassisBody.velocity;
+    return Math.hypot(v.x, v.z);
+  }
+
+  getForwardSpeed() {
+    const v = this.chassisBody.velocity;
+    const fwd = this.getForwardVector();
+    return v.x * fwd.x + v.z * fwd.z;
+  }
+
+  getForwardVector() {
+    const q = this.chassisBody.quaternion;
+    const fwd = new THREE.Vector3(0, 0, 1);
+    fwd.applyQuaternion(new THREE.Quaternion(q.x, q.y, q.z, q.w));
+    return fwd;
+  }
+
+  getCurrentGear() {
+    const spd = Math.abs(this.getForwardSpeed());
+    for (let i = 0; i < this.gears.length; i++) {
+      if (spd < this.gears[i].maxSpeed) return i + 1;
+    }
+    return this.gears.length;
+  }
+
+  enter() {
+    this.isDriving = true;
+    this._brakeForce = 4;
+    this._engineForce = 0;
+    this._steerValue = 0;
+  }
+
+  exit() {
+    this.isDriving = false;
+    this._engineForce = 0;
+    this._brakeForce = 30;
+    this._steerValue = 0;
+    for (let i = 0; i < 4; i++) {
+      this.vehicle.setBrake(this._brakeForce, i);
+      this.vehicle.applyEngineForce(0, i);
+      this.vehicle.setSteeringValue(0, i);
+    }
+  }
+
+  destroy() {
+    this.vehicle.removeFromWorld(this.physics.world);
+    this.group.removeFromParent();
+  }
+}

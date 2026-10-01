@@ -6,109 +6,123 @@ export class Player {
   constructor(physics) {
     this.physics = physics;
 
-    // =========================
-    // Mesh
-    // =========================
+    // ============================================================
+    // VISUAL
+    // ============================================================
 
     this.mesh = new THREE.Group();
     this.mesh.name = 'Player';
 
-    // =========================
-    // Physics
-    // =========================
+    // ============================================================
+    // PHYSICS BODY
+    // ============================================================
 
     this.body = new CANNON.Body({
       mass: 70,
-
       material: physics.playerMaterial,
 
       shape: new CANNON.Sphere(0.5),
 
-      position: new CANNON.Vec3(0, 1, 0),
+      position: new CANNON.Vec3(
+        0,
+        1,
+        0
+      ),
 
       linearDamping: 0,
       angularDamping: 1,
+
+      fixedRotation: true,
+      allowSleep: false,
     });
 
-    this.body.fixedRotation = true;
     this.body.updateMassProperties();
-
-    this.body.allowSleep = false;
 
     physics.world.addBody(this.body);
 
-    // =========================
-    // Movement controller
-    // =========================
+    // ============================================================
+    // MOVEMENT
+    // ============================================================
 
-    this.controller = new KinematicBody(this.body, {
-      maxSpeed: 7,
+    this.controller = new KinematicBody(
+      this.body,
+      {
+        maxSpeed: 6,
+        accelTime: 0.2,
+        decelTime: 0.14,
+        turnSpeed: 12,
+      }
+    );
 
-      // زمان رسیدن به حدود 90% سرعت
-      accelTime: 0.35,
-
-      // زمان توقف
-      decelTime: 0.22,
-
-      // سرعت تغییر جهت
-      turnSpeed: 16,
-    });
-
-    this.maxSpeed = 7;
-    this.sprintSpeed = 11;
+    this.maxSpeed = 6;
+    this.sprintSpeed = 10;
 
     this.isMoving = false;
     this.isSprinting = false;
 
     this.moveInput = null;
-
-    // جهت نگاه کاراکتر
     this.facing = 0;
 
-    // =========================
-    // Jump
-    // =========================
+    // ============================================================
+    // JUMP
+    // ============================================================
+
+    this.playerRadius = 0.5;
+
+    /*
+     * Gravity is handled by Cannon.
+     *
+     * With gravity = -12 and jumpForce = 8.5:
+     *
+     * Time to apex:
+     *     8.5 / 12 ≈ 0.71 sec
+     *
+     * Total jump:
+     *     ≈ 1.42 sec
+     *
+     * This gives the player noticeably more time in the air.
+     */
+    this.jumpForce = 6.5;
 
     this.isOnGround = false;
 
     this.jumpCooldown = 0;
 
-    this.jumpForce = 12;
+    this.jumpCooldownDuration = 0.12;
 
     this._prevSpace = false;
 
-    // =========================
-    // One shot animations
-    // =========================
+    /*
+     * This remains true from jump until we actually
+     * touch the ground again.
+     */
+    this._isJumping = false;
+
+    /*
+     * Prevents ground detection from changing state
+     * during the same frame as the jump.
+     */
+    this._justJumped = false;
+
+    // ============================================================
+    // ANIMATION
+    // ============================================================
 
     this.oneShotTimer = 0;
     this.oneShotName = null;
-
-    // =========================
-    // Holding animations
-    // =========================
-
     this.holdState = null;
 
-    this._prevKeys = {};
-
-    // =========================
-    // Model / animation
-    // =========================
-
     this.model = null;
-
     this.mixer = null;
 
     this.actions = {};
-
     this.currentActionName = null;
 
     this.fadeTime = 0.12;
 
-    // =========================
-    // One-shot key map
-    // =========================
+    // ============================================================
+    // ONE SHOT KEYS
+    // ============================================================
 
     this.keyMap = {
       j: {
@@ -145,83 +159,74 @@ export class Player {
         name: 'pick-up',
         duration: 0.33,
       },
-
-      1: {
-        name: 'emote-yes',
-        duration: 0.67,
-      },
-
-      2: {
-        name: 'emote-no',
-        duration: 0.67,
-      },
-
-      3: {
-        name: 'die',
-        duration: 0.33,
-      },
-
-      4: {
-        name: 'sit',
-        duration: 0.17,
-      },
-
-      5: {
-        name: 'drive',
-        duration: 0.17,
-      },
     };
+
+    // ============================================================
+    // HOLD KEYS
+    // ============================================================
 
     this.holdKeyMap = {
       z: 'holding-right',
       x: 'holding-left',
-      c: 'holding-both',
+      v: 'holding-both',
     };
+
+    this._prevKeys = {};
   }
 
   // ============================================================
   // MODEL
   // ============================================================
 
-  setModel(model, animations) {
+  setModel(model, animations = []) {
     if (this.model) {
       this.mesh.remove(this.model);
     }
 
-    // -------------------------
-    // Normalize model height
-    // -------------------------
+    // ------------------------------------------------------------
+    // Normalize model size
+    // ------------------------------------------------------------
 
-    const box = new THREE.Box3().setFromObject(model);
+    const box =
+      new THREE.Box3().setFromObject(model);
 
-    const size = new THREE.Vector3();
+    const size =
+      new THREE.Vector3();
 
     box.getSize(size);
 
     if (size.y > 0) {
-      const scale = 1.8 / size.y;
+      const scale =
+        1.5 / size.y;
 
       model.scale.setScalar(scale);
     }
 
-    // -------------------------
-    // Put model feet on origin
-    // -------------------------
+    // ------------------------------------------------------------
+    // Put feet on local Y = 0
+    // ------------------------------------------------------------
 
-    const box2 = new THREE.Box3().setFromObject(model);
+    const box2 =
+      new THREE.Box3().setFromObject(model);
 
-    const center = new THREE.Vector3();
+    const center =
+      new THREE.Vector3();
 
     box2.getCenter(center);
 
     model.position.x -= center.x;
     model.position.z -= center.z;
-
     model.position.y -= box2.min.y;
 
-    // -------------------------
+    model.rotation.set(
+      0,
+      0,
+      0
+    );
+
+    // ------------------------------------------------------------
     // Shadows
-    // -------------------------
+    // ------------------------------------------------------------
 
     model.traverse((node) => {
       if (!node.isMesh) return;
@@ -229,45 +234,58 @@ export class Player {
       node.castShadow = true;
       node.receiveShadow = true;
 
-      // اگر مدل پیچیده شد، می‌توانی بعداً
-      // این را true کنی.
       node.frustumCulled = false;
     });
+
+    // ------------------------------------------------------------
+    // Store model
+    // ------------------------------------------------------------
 
     this.model = model;
 
     this.mesh.add(model);
 
-    // -------------------------
+    // ------------------------------------------------------------
     // Animation mixer
-    // -------------------------
+    // ------------------------------------------------------------
 
-    this.mixer = new THREE.AnimationMixer(model);
+    this.mixer =
+      new THREE.AnimationMixer(model);
 
     this.actions = {};
 
     for (const clip of animations) {
-      const name = clip.name.toLowerCase();
+      const name =
+        clip.name.toLowerCase();
 
-      const action = this.mixer.clipAction(clip);
+      const action =
+        this.mixer.clipAction(clip);
 
       this.actions[name] = action;
     }
 
     console.log(
-      'Player animations:',
+      '[Player] Animations:',
       Object.keys(this.actions)
     );
 
-    this._play('idle', 0);
+    this._play(
+      'idle',
+      0
+    );
   }
 
   // ============================================================
-  // ANIMATION
+  // PLAY ANIMATION
   // ============================================================
 
-  _play(name, fade = this.fadeTime, once = false) {
-    const action = this.actions[name];
+  _play(
+    name,
+    fade = this.fadeTime,
+    once = false
+  ) {
+    const action =
+      this.actions[name];
 
     if (!action) {
       return;
@@ -282,30 +300,31 @@ export class Player {
 
     const previous =
       this.currentActionName
-        ? this.actions[this.currentActionName]
+        ? this.actions[
+            this.currentActionName
+          ]
         : null;
 
-    // Reset
     action.reset();
 
-    // Loop configuration
     if (once) {
       action.setLoop(
         THREE.LoopOnce,
         1
       );
 
-      action.clampWhenFinished = true;
+      action.clampWhenFinished =
+        true;
     } else {
       action.setLoop(
         THREE.LoopRepeat,
         Infinity
       );
 
-      action.clampWhenFinished = false;
+      action.clampWhenFinished =
+        false;
     }
 
-    // جلوگیری از پرش هنگام شروع
     action.enabled = true;
 
     if (fade > 0) {
@@ -328,9 +347,14 @@ export class Player {
     this.currentActionName = name;
   }
 
-  _triggerOneShot(name, duration) {
-    // اجازه نده animation جدید وسط قبلی
-    // دائم override شود.
+  // ============================================================
+  // ONE SHOT
+  // ============================================================
+
+  _triggerOneShot(
+    name,
+    duration
+  ) {
     if (this.oneShotTimer > 0) {
       return;
     }
@@ -340,7 +364,6 @@ export class Player {
     }
 
     this.oneShotName = name;
-
     this.oneShotTimer = duration;
 
     this._play(
@@ -354,10 +377,13 @@ export class Player {
   // INPUT
   // ============================================================
 
-  setInput(keys, cameraYaw) {
-    // -------------------------
-    // WASD
-    // -------------------------
+  setInput(
+    keys,
+    cameraYaw
+  ) {
+    // ==========================================================
+    // MOVEMENT
+    // ==========================================================
 
     const forward =
       (keys.w || keys.arrowup ? 1 : 0) -
@@ -377,49 +403,57 @@ export class Player {
       this.isMoving = true;
 
       this.moveInput = {
-        forward: forward / length,
-        strafe: strafe / length,
+        forward:
+          forward / length,
+
+        strafe:
+          strafe / length,
       };
     } else {
       this.isMoving = false;
-
       this.moveInput = null;
     }
 
-    // -------------------------
-    // Sprint
-    // -------------------------
+    // ==========================================================
+    // SPRINT
+    // ==========================================================
 
     this.isSprinting =
       !!keys.shift &&
       this.isMoving;
 
-    // -------------------------
-    // Jump
-    // -------------------------
+    // ==========================================================
+    // JUMP
+    // ==========================================================
 
-    const spaceNow = !!keys[' '];
+    const spaceNow =
+      !!keys[' '];
+
+    const jumpPressed =
+      spaceNow &&
+      !this._prevSpace;
 
     if (
-      spaceNow &&
-      !this._prevSpace &&
+      jumpPressed &&
       this.isOnGround &&
       this.jumpCooldown <= 0
     ) {
       this._jump();
     }
 
-    this._prevSpace = spaceNow;
+    this._prevSpace =
+      spaceNow;
 
-    // -------------------------
-    // One-shot keys
-    // -------------------------
+    // ==========================================================
+    // ONE SHOT ANIMATIONS
+    // ==========================================================
 
-    for (const [
-      key,
-      info
-    ] of Object.entries(this.keyMap)) {
-      const pressed = !!keys[key];
+    for (
+      const [key, info]
+      of Object.entries(this.keyMap)
+    ) {
+      const pressed =
+        !!keys[key];
 
       const wasPressed =
         !!this._prevKeys[key];
@@ -434,26 +468,30 @@ export class Player {
         );
       }
 
-      this._prevKeys[key] = pressed;
+      this._prevKeys[key] =
+        pressed;
     }
 
-    // -------------------------
-    // Holding
-    // -------------------------
+    // ==========================================================
+    // HOLD ANIMATIONS
+    // ==========================================================
 
     let activeHold = null;
 
-    for (const [
-      key,
-      animation
-    ] of Object.entries(this.holdKeyMap)) {
+    for (
+      const [key, animation]
+      of Object.entries(
+        this.holdKeyMap
+      )
+    ) {
       if (keys[key]) {
         activeHold = animation;
         break;
       }
     }
 
-    this.holdState = activeHold;
+    this.holdState =
+      activeHold;
   }
 
   // ============================================================
@@ -461,72 +499,235 @@ export class Player {
   // ============================================================
 
   _jump() {
-    this.body.velocity.y = this.jumpForce;
+    /*
+     * Completely replace vertical velocity.
+     *
+     * If Cannon has a small downward velocity while standing,
+     * it must not weaken the jump.
+     */
+    this.body.velocity.y =
+      this.jumpForce;
 
-    this.isOnGround = false;
+    this.isOnGround =
+      false;
 
-    this.jumpCooldown = 0.35;
+    this._isJumping =
+      true;
+
+    this._justJumped =
+      true;
+
+    this.jumpCooldown =
+      this.jumpCooldownDuration;
+
+    this.body.wakeUp();
+
+    console.log(
+      '[Player] JUMP',
+      'velocityY:',
+      this.body.velocity.y
+    );
   }
 
   // ============================================================
-  // UPDATE
+  // GROUND DETECTION
   // ============================================================
 
-  update(dt, cameraYaw) {
-    dt = Math.min(dt, 0.05);
+  _updateGroundState() {
+    const body =
+      this.body;
 
-    // -------------------------
-    // Timers
-    // -------------------------
-
-    if (this.jumpCooldown > 0) {
-      this.jumpCooldown -= dt;
-    }
-
-    // -------------------------
-    // Ground detection
-    // -------------------------
+    // ----------------------------------------------------------
+    // Jump protection
+    // ----------------------------------------------------------
 
     /*
-     * فعلاً چون body یک Sphere با radius = 0.5 است،
-     * مرکز آن وقتی روی زمین است تقریباً y = 0.5 خواهد بود.
-     *
-     * بعداً بهتر است این قسمت را با raycast/contact
-     * جایگزین کنیم.
+     * If we're moving upward, we're definitely not grounded.
      */
+    if (
+      body.velocity.y > 0.2
+    ) {
+      this.isOnGround = false;
+      return;
+    }
 
-    const groundY = 0.5;
+    /*
+     * Immediately after jumping, don't let the raycast
+     * flip us back to grounded.
+     */
+    if (this._justJumped) {
+      this.isOnGround = false;
 
-    this.isOnGround =
-      this.body.position.y <= groundY + 0.08 &&
-      this.body.velocity.y <= 1.5;
+      /*
+       * Clear this flag once the physics has had a chance
+       * to process the jump.
+       */
+      this._justJumped = false;
 
-    // -------------------------
-    // Movement direction
-    // -------------------------
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // Raycast
+    // ----------------------------------------------------------
+
+    const from =
+      new CANNON.Vec3(
+        body.position.x,
+        body.position.y -
+          this.playerRadius +
+          0.08,
+        body.position.z
+      );
+
+    const to =
+      new CANNON.Vec3(
+        body.position.x,
+        body.position.y -
+          this.playerRadius -
+          0.18,
+        body.position.z
+      );
+
+    let foundGround =
+      false;
+
+    let closestDistance =
+      Infinity;
+
+    this.physics.world.raycastAll(
+      from,
+      to,
+      {
+        skipBackfaces: true,
+      },
+      (result) => {
+        if (!result.hasHit) {
+          return;
+        }
+
+        if (
+          result.body ===
+          this.body
+        ) {
+          return;
+        }
+
+        /*
+         * We only care about surfaces that are actually
+         * below the player.
+         */
+        const normal =
+          result.hitNormalWorld;
+
+        if (
+          normal &&
+          normal.y < 0.5
+        ) {
+          return;
+        }
+
+        const distance =
+          result.hitPointWorld.distanceTo(
+            from
+          );
+
+        if (
+          distance <
+          closestDistance
+        ) {
+          closestDistance =
+            distance;
+
+          foundGround =
+            true;
+        }
+      }
+    );
+
+    // ----------------------------------------------------------
+    // Ground state
+    // ----------------------------------------------------------
+
+    if (
+      foundGround &&
+      closestDistance <= 0.20 &&
+      body.velocity.y <= 0.2
+    ) {
+      this.isOnGround = true;
+      this._isJumping = false;
+    } else {
+      this.isOnGround = false;
+    }
+  }
+
+  // ============================================================
+  // UPDATE CONTROLLER
+  // ============================================================
+
+  updateController(
+    dt,
+    cameraYaw
+  ) {
+    dt =
+      Math.min(
+        dt,
+        0.05
+      );
+
+    // ----------------------------------------------------------
+    // Cooldown
+    // ----------------------------------------------------------
+
+    if (
+      this.jumpCooldown > 0
+    ) {
+      this.jumpCooldown -= dt;
+
+      if (
+        this.jumpCooldown < 0
+      ) {
+        this.jumpCooldown = 0;
+      }
+    }
+
+    // ----------------------------------------------------------
+    // Horizontal movement
+    // ----------------------------------------------------------
 
     if (
       this.isMoving &&
       this.moveInput
     ) {
-      const sinY = Math.sin(cameraYaw);
-      const cosY = Math.cos(cameraYaw);
+      const sinY =
+        Math.sin(cameraYaw);
 
-      // Forward camera direction
-      const forwardX = -sinY;
-      const forwardZ = -cosY;
+      const cosY =
+        Math.cos(cameraYaw);
 
-      // Right camera direction
-      const rightX = cosY;
-      const rightZ = -sinY;
+      const forwardX =
+        -sinY;
+
+      const forwardZ =
+        -cosY;
+
+      const rightX =
+        cosY;
+
+      const rightZ =
+        -sinY;
 
       const moveX =
-        forwardX * this.moveInput.forward +
-        rightX * this.moveInput.strafe;
+        forwardX *
+          this.moveInput.forward +
+        rightX *
+          this.moveInput.strafe;
 
       const moveZ =
-        forwardZ * this.moveInput.forward +
-        rightZ * this.moveInput.strafe;
+        forwardZ *
+          this.moveInput.forward +
+        rightZ *
+          this.moveInput.strafe;
 
       this.controller.setDirection(
         moveX,
@@ -539,25 +740,16 @@ export class Player {
           ? this.sprintSpeed
           : this.maxSpeed;
 
-      // -------------------------
-      // Face movement direction
-      // -------------------------
-
       const targetYaw =
         Math.atan2(
           moveX,
           moveZ
         );
 
-      const rotationSpeed =
-        this.isSprinting
-          ? 15
-          : 12;
-
       const rotationT =
         1 -
         Math.exp(
-          -rotationSpeed * dt
+          -10 * dt
         );
 
       this.facing =
@@ -574,60 +766,64 @@ export class Player {
       );
     }
 
-    // -------------------------
-    // Physics movement
-    // -------------------------
-
+    /*
+     * IMPORTANT:
+     *
+     * KinematicBody only modifies X/Z.
+     * It must never modify velocity.y.
+     */
     this.controller.update(dt);
 
-    // -------------------------
-    // Animation
-    // -------------------------
+    // ----------------------------------------------------------
+    // Ground check AFTER controller
+    // ----------------------------------------------------------
+
+    this._updateGroundState();
+  }
+
+  // ============================================================
+  // VISUAL SYNC
+  // ============================================================
+
+  syncVisual(dt = 0) {
+    this.mesh.position.set(
+      this.body.position.x,
+      this.body.position.y -
+        this.playerRadius,
+      this.body.position.z
+    );
+
+    this.mesh.rotation.y =
+      this.facing;
 
     this._updateAnimation(dt);
-
-    // -------------------------
-    // Mixer
-    // -------------------------
 
     if (this.mixer) {
       this.mixer.update(dt);
     }
-
-    // -------------------------
-    // Sync mesh
-    // -------------------------
-
-    this._updateMesh(dt);
   }
 
   // ============================================================
-  // ANIMATION STATE
+  // ANIMATION UPDATE
   // ============================================================
 
   _updateAnimation(dt) {
-    // -------------------------
-    // One-shot
-    // -------------------------
-
-    if (this.oneShotTimer > 0) {
+    if (
+      this.oneShotTimer > 0
+    ) {
       this.oneShotTimer -= dt;
 
-      if (this.oneShotTimer <= 0) {
+      if (
+        this.oneShotTimer <= 0
+      ) {
         this.oneShotTimer = 0;
         this.oneShotName = null;
 
-        // بعد از animation برگرد
-        // به state اصلی
         this._updateLocomotionAnimation();
       }
 
       return;
     }
-
-    // -------------------------
-    // Holding
-    // -------------------------
 
     if (this.holdState) {
       if (
@@ -643,25 +839,65 @@ export class Player {
       return;
     }
 
-    // -------------------------
-    // Locomotion
-    // -------------------------
-
     this._updateLocomotionAnimation();
   }
 
+  // ============================================================
+  // LOCOMOTION
+  // ============================================================
+
   _updateLocomotionAnimation() {
+    // ----------------------------------------------------------
+    // Air
+    // ----------------------------------------------------------
+
+    if (!this.isOnGround) {
+      if (
+        this.body.velocity.y > 0.5 &&
+        this.actions.jump
+      ) {
+        if (
+          this.currentActionName !==
+          'jump'
+        ) {
+          this._play(
+            'jump',
+            0.08
+          );
+        }
+
+        return;
+      }
+
+      if (
+        this.body.velocity.y < -0.5 &&
+        this.actions.fall
+      ) {
+        if (
+          this.currentActionName !==
+          'fall'
+        ) {
+          this._play(
+            'fall',
+            0.08
+          );
+        }
+
+        return;
+      }
+    }
+
+    // ----------------------------------------------------------
+    // Speed
+    // ----------------------------------------------------------
+
     const speed =
       this.controller.getHorizontalSpeed();
 
-    // threshold کوچک برای جلوگیری از
-    // idle/walk flickering
-    const moving =
-      speed > 0.15;
-
-    if (!moving) {
+    if (speed <= 0.15) {
       if (
-        this.currentActionName !== 'idle'
+        this.currentActionName !==
+        'idle'
       ) {
         this._play(
           'idle',
@@ -672,14 +908,20 @@ export class Player {
       return;
     }
 
+    // ----------------------------------------------------------
+    // Walk / sprint
+    // ----------------------------------------------------------
+
     const target =
       this.isSprinting &&
-      speed > this.maxSpeed * 0.75
+      speed >
+        this.maxSpeed * 0.75
         ? 'sprint'
         : 'walk';
 
     if (
-      this.currentActionName !== target
+      this.currentActionName !==
+      target
     ) {
       this._play(
         target,
@@ -689,73 +931,35 @@ export class Player {
   }
 
   // ============================================================
-  // MESH SYNC
-  // ============================================================
-
-  _updateMesh(dt) {
-    const targetX =
-      this.body.position.x;
-
-    /*
-     * چون Sphere مرکز body است و radius آن 0.5 است،
-     * mesh را نیم متر پایین‌تر قرار می‌دهیم.
-     */
-    const targetY =
-      this.body.position.y - 0.5;
-
-    const targetZ =
-      this.body.position.z;
-
-    /*
-     * interpolation مستقل از FPS
-     *
-     * به جای:
-     *
-     * position += difference * 0.6
-     *
-     * که به FPS وابسته است.
-     */
-
-    const followSpeed = 20;
-
-    const t =
-      1 -
-      Math.exp(
-        -followSpeed * dt
-      );
-
-    this.mesh.position.x +=
-      (targetX - this.mesh.position.x) * t;
-
-    this.mesh.position.y +=
-      (targetY - this.mesh.position.y) * t;
-
-    this.mesh.position.z +=
-      (targetZ - this.mesh.position.z) * t;
-
-    this.mesh.rotation.y =
-      this.facing;
-  }
-
-  // ============================================================
   // ANGLE LERP
   // ============================================================
 
-  _lerpAngle(a, b, t) {
-    let diff = b - a;
+  _lerpAngle(
+    a,
+    b,
+    t
+  ) {
+    let diff =
+      b - a;
 
-    while (diff > Math.PI) {
-      diff -= Math.PI * 2;
+    while (
+      diff > Math.PI
+    ) {
+      diff -=
+        Math.PI * 2;
     }
 
-    while (diff < -Math.PI) {
-      diff += Math.PI * 2;
+    while (
+      diff < -Math.PI
+    ) {
+      diff +=
+        Math.PI * 2;
     }
 
     return (
       a +
       diff *
-      Math.min(1, t)
+        Math.min(1, t)
     );
   }
 

@@ -8,33 +8,37 @@ export class AssetLoader {
     this.gltfCache = new Map();
   }
 
-  async loadCharacter(modelUrl) {
-    // === مدل ===
+  async load(modelUrl, { skinned = false } = {}) {
     if (!this.gltfCache.has(modelUrl)) {
-      this.gltfCache.set(modelUrl, this.gltf.loadAsync(modelUrl));
+      const promise = this.gltf.loadAsync(modelUrl).catch((error) => {
+        console.error(`[AssetLoader] Failed to load: ${modelUrl}`, error);
+        this.gltfCache.delete(modelUrl);
+        throw error;
+      });
+
+      this.gltfCache.set(modelUrl, promise);
     }
+
     const gltf = await this.gltfCache.get(modelUrl);
 
-    console.log('=== GLB loaded:', modelUrl);
-    console.log(
-      'Animations:',
-      gltf.animations.map((a) => a.name)
-    );
+    const model = skinned
+      ? skeletonClone(gltf.scene)
+      : gltf.scene.clone(true);
 
-    // === کلون درست ===
-    const model = skeletonClone(gltf.scene);
-
-    // فقط shadow و frustumCulled رو تنظیم کن، به material دست نزن
     model.traverse((node) => {
-      if (node.isMesh) {
-        node.castShadow = true;
-        node.receiveShadow = true;
-        node.frustumCulled = false;
-      }
+      if (!node.isMesh) return;
+      node.castShadow = true;
+      node.receiveShadow = true;
+      node.frustumCulled = true;
     });
 
-    const animations = gltf.animations.map((clip) => clip.clone());
+    return {
+      model,
+      animations: gltf.animations.map((clip) => clip.clone()),
+    };
+  }
 
-    return { model, animations };
+  async loadCharacter(modelUrl) {
+    return this.load(modelUrl, { skinned: true });
   }
 }

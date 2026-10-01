@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Road Test - Top Down</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #222; }
+    #info {
+      position: fixed; top: 10px; left: 10px;
+      color: #0f0; font-family: monospace; font-size: 14px;
+      background: rgba(0,0,0,0.8); padding: 12px; z-index: 100;
+      line-height: 1.6;
+    }
+    #info b { color: #ff0; }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <b>TOP-DOWN VIEW — rotation = 0 for ALL pieces</b><br>
+    <span style="color:#ff6666">RED LINE</span> = +Z axis (north)<br>
+    <span style="color:#6699ff">BLUE LINE</span> = +X axis (east)<br>
+    Each piece is <b>8x8 tiles</b> area shown as grid
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(W, H);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a1a1a);
+
+    /*
+     * Orthographic camera looking straight down.
+     * We can fit several pieces side by side.
+     */
+    const aspect = W / H;
+    const viewHeight = 30;
+    const viewWidth = viewHeight * aspect;
+
+    const camera = new THREE.OrthographicCamera(
+      -viewWidth / 2, viewWidth / 2,
+      viewHeight / 2, -viewHeight / 2,
+      0.1, 100
+    );
+    camera.position.set(0, 50, 0);
+    camera.up.set(0, 0, -1);  /* so +Z is DOWN on screen */
+    camera.lookAt(0, 0, 0);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+
+    const loader = new GLTFLoader();
+    const base = '/models/city/roads/GLB%20format';
+
+    /*
+     * Each piece is shown in its own 5x5 area
+     * (bigger than the piece itself so we see pivot).
+     *
+     * Grid layout: 4 columns × 2 rows.
+     */
+    const pieces = [
+      'road-straight',
+      'road-crossroad-line',
+      'road-crossing',
+      'road-side',
+      'road-bend',
+      'road-split',
+      'road-intersection-line',
+      'road-end',
+    ];
+
+    const cellSize = 5;
+    const cols = 4;
+    const scale = 3;  /* 1 raw unit → 3 world units */
+
+    /*
+     * Draw grid lines for each cell so we can see tile boundaries.
+     */
+    const gridMat = new THREE.LineBasicMaterial({ color: 0x333333 });
+
+    for (let i = 0; i <= cols; i++) {
+      const x = (i - cols / 2) * cellSize;
+      const geo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x, 0.001, -cellSize),
+        new THREE.Vector3(x, 0.001, cellSize),
+      ]);
+      scene.add(new THREE.Line(geo, gridMat));
+    }
+
+    for (let i = -1; i <= 1; i++) {
+      const z = i * cellSize;
+      const geo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-cols / 2 * cellSize, 0.001, z),
+        new THREE.Vector3(cols / 2 * cellSize, 0.001, z),
+      ]);
+      scene.add(new THREE.Line(geo, gridMat));
+    }
+
+    async function loadAll() {
+      for (let i = 0; i < pieces.length; i++) {
+        const name = pieces[i];
+        const url = `${base}/${name}.glb`;
+
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+
+        const cx = (col - (cols - 1) / 2) * cellSize;
+        const cz = (row - 0.5) * cellSize;
+
+        try {
+          const gltf = await loader.loadAsync(url);
+          const model = gltf.scene;
+
+          model.scale.setScalar(scale);
+          model.position.set(cx, 0, cz);
+          /* rotation = 0 — we want NATURAL orientation */
+
+          /* Colorize */
+          model.traverse(n => {
+            if (n.isMesh) {
+              n.material = n.material.clone();
+              n.material.color = new THREE.Color().setHSL(
+                i / pieces.length, 0.7, 0.6
+              );
+            }
+          });
+
+          scene.add(model);
+
+          /*
+           * Add axis lines: red = +Z, blue = +X
+           * Lines are drawn for each piece's cell.
+           */
+          const zLine = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints([
+              new THREE.Vector3(cx, 0.02, cz),
+              new THREE.Vector3(cx, 0.02, cz + 2),
+            ]),
+            new THREE.LineBasicMaterial({ color: 0xff0000 })
+          );
+          scene.add(zLine);
+
+          const xLine = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints([
+              new THREE.Vector3(cx, 0.02, cz),
+              new THREE.Vector3(cx + 2, 0.02, cz),
+            ]),
+            new THREE.LineBasicMaterial({ color: 0x0066ff })
+          );
+          scene.add(xLine);
+
+          /* Bright dot at pivot (0,0,0) of the piece */
+          const dotGeo = new THREE.CircleGeometry(0.1, 12);
+          const dotMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+          const dot = new THREE.Mesh(dotGeo, dotMat);
+          dot.rotation.x = -Math.PI / 2;
+          dot.position.set(cx, 0.03, cz);
+          scene.add(dot);
+
+          console.log(`[RoadTest] Loaded: ${name} at (${cx.toFixed(1)}, 0, ${cz.toFixed(1)})`);
+        } catch (e) {
+          console.error(`[RoadTest] ${name} FAILED:`, e);
+        }
+      }
+
+      console.log('[RoadTest] DONE — screenshot and send');
+    }
+
+    loadAll();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      const aspect = W / H;
+      const viewHeight = 30;
+      const viewWidth = viewHeight * aspect;
+      camera.left = -viewWidth / 2;
+      camera.right = viewWidth / 2;
+      camera.top = viewHeight / 2;
+      camera.bottom = -viewHeight / 2;
+      camera.updateProjectionMatrix();
+      renderer.setSize(W, H);
+    });
+  </script>
+</body>
+</html>
