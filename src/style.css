@@ -369,3 +369,2093 @@ body {
   backdrop-filter: blur(6px);
   z-index: 10;
 }
+
+/* =========================================================
+   MOBILE GAME UI
+   ========================================================= */
+
+#mobile-controls {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  font-family: Arial, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+#mobile-controls .mobile-ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#mobile-controls .mobile-left,
+#mobile-controls .mobile-right,
+#mobile-controls .mobile-top-right {
+  pointer-events: none;
+}
+
+.mobile-joystick {
+  position: absolute;
+  left: 6vw;
+  bottom: 7vh;
+
+  width: 130px;
+  height: 130px;
+
+  border-radius: 50%;
+
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.35);
+
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.mobile-joystick::after {
+  content: '';
+  position: absolute;
+  inset: 18px;
+
+  border-radius: 50%;
+
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.mobile-joystick-stick {
+  position: absolute;
+
+  left: 50%;
+  top: 50%;
+
+  width: 58px;
+  height: 58px;
+
+  border-radius: 50%;
+
+  transform: translate(-50%, -50%);
+
+  background: rgba(255,255,255,0.35);
+  border: 2px solid rgba(255,255,255,0.55);
+}
+
+.mobile-right {
+  position: absolute;
+  right: 5vw;
+  bottom: 6vh;
+
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.mobile-button {
+  width: 92px;
+  height: 92px;
+
+  border: 2px solid rgba(255,255,255,0.4);
+  border-radius: 50%;
+
+  color: white;
+  font-weight: 800;
+  font-size: 14px;
+
+  background: rgba(255,255,255,0.16);
+
+  pointer-events: auto;
+  touch-action: none;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-gas {
+  width: 105px;
+  height: 105px;
+}
+
+.mobile-brake {
+  width: 72px;
+  height: 72px;
+}
+
+.mobile-button:active {
+  background: rgba(255,255,255,0.32);
+  transform: scale(0.94);
+}
+
+.mobile-top-right {
+  position: absolute;
+  top: 4vh;
+  right: 4vw;
+
+  display: flex;
+  gap: 10px;
+}
+
+.mobile-small-button {
+  width: 48px;
+  height: 48px;
+
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 12px;
+
+  color: white;
+  font-weight: 800;
+  font-size: 16px;
+
+  background: rgba(0,0,0,0.3);
+
+  pointer-events: auto;
+  touch-action: manipulation;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-small-button:active {
+  transform: scale(0.92);
+}
+
+/* =========================================================
+   PORTRAIT BLOCKER
+   ========================================================= */
+
+.mobile-orientation {
+  display: none;
+
+  position: absolute;
+  inset: 0;
+
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+
+  text-align: center;
+
+  padding: 30px;
+
+  background: #101010;
+
+  color: white;
+
+  pointer-events: auto;
+}
+
+#mobile-controls.portrait
+  .mobile-orientation {
+  display: flex;
+}
+
+#mobile-controls.portrait
+  .mobile-ui {
+  display: none;
+}
+
+.mobile-orientation-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.mobile-orientation-title {
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.mobile-orientation-text {
+  margin-top: 10px;
+  max-width: 400px;
+
+  font-size: 15px;
+  line-height: 1.7;
+
+  opacity: 0.75;
+}
+
+/* =========================================================
+   MOBILE ONLY
+   ========================================================= */
+
+@media (max-width: 900px) {
+  #mobile-controls {
+    display: block;
+  }
+}
+
+/* Desktop */
+@media (min-width: 901px) {
+  #mobile-controls {
+    display: none !important;
+  }
+}
+
+/* =========================================================
+   MOBILE GAME UI
+   ========================================================= */
+
+#mobile-controls {
+  display: none;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+
+  #mobile-controls {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+
+    font-family:
+      Inter,
+      Arial,
+      sans-serif;
+
+    touch-action: none;
+  }
+
+  #mobile-controls * {
+    box-sizing: border-box;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* =======================================================
+     PORTRAIT BLOCKER
+     ======================================================= */
+
+  #mobile-controls .mobile-orientation {
+    display: none;
+
+    position: fixed;
+    inset: 0;
+
+    z-index: 10000;
+
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+
+    padding: 30px;
+
+    text-align: center;
+
+    background:
+      radial-gradient(
+        circle at center,
+        #1c2735 0%,
+        #080c12 70%
+      );
+
+    color: white;
+
+    pointer-events: auto;
+  }
+
+  #mobile-controls.portrait .mobile-orientation {
+    display: flex;
+  }
+
+  #mobile-controls.portrait .mobile-ui {
+    display: none;
+  }
+
+  .mobile-orientation-icon {
+    font-size: 64px;
+    margin-bottom: 18px;
+
+    animation:
+      mobileRotatePhone 1.5s
+      ease-in-out infinite;
+  }
+
+  .mobile-orientation-title {
+    font-size: 24px;
+    font-weight: 800;
+
+    margin-bottom: 10px;
+  }
+
+  .mobile-orientation-text {
+    max-width: 320px;
+
+    color: rgba(255,255,255,.65);
+
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  @keyframes mobileRotatePhone {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+
+    50% {
+      transform: rotate(90deg);
+    }
+  }
+
+  /* =======================================================
+     MAIN UI
+     ======================================================= */
+
+  .mobile-ui {
+    position: absolute;
+    inset: 0;
+
+    pointer-events: none;
+  }
+
+  /* =======================================================
+     TOP LEFT
+     ======================================================= */
+
+  .mobile-top-left {
+    position: absolute;
+
+    left: 20px;
+    top: 18px;
+
+    pointer-events: none;
+  }
+
+  .mobile-game-label {
+    padding: 7px 12px;
+
+    border-radius: 8px;
+
+    background:
+      rgba(5, 10, 16, .55);
+
+    border:
+      1px solid rgba(255,255,255,.12);
+
+    color:
+      rgba(255,255,255,.65);
+
+    font-size: 11px;
+    font-weight: 800;
+
+    letter-spacing: 2px;
+
+    backdrop-filter:
+      blur(8px);
+  }
+
+  /* =======================================================
+     TOP RIGHT
+     ======================================================= */
+
+  .mobile-top-right {
+    position: absolute;
+
+    right: 18px;
+    top: 16px;
+
+    display: flex;
+    gap: 8px;
+
+    pointer-events: auto;
+  }
+
+  .mobile-small-button {
+    width: 46px;
+    height: 46px;
+
+    border: 1px solid
+      rgba(255,255,255,.18);
+
+    border-radius: 12px;
+
+    background:
+      rgba(8, 13, 20, .72);
+
+    color: white;
+
+    font-size: 16px;
+    font-weight: 800;
+
+    box-shadow:
+      0 5px 18px
+      rgba(0,0,0,.3);
+
+    backdrop-filter:
+      blur(10px);
+
+    cursor: pointer;
+
+    transition:
+      transform .08s ease,
+      background .12s ease;
+  }
+
+  .mobile-small-button:active {
+    transform: scale(.9);
+
+    background:
+      rgba(70, 130, 190, .8);
+  }
+
+  /* =======================================================
+     LEFT SIDE
+     ======================================================= */
+
+  .mobile-left {
+    position: absolute;
+
+    left: 24px;
+    bottom: 24px;
+
+    width: 210px;
+    height: 190px;
+
+    pointer-events: none;
+  }
+
+  /* =======================================================
+     JOYSTICK
+     ======================================================= */
+
+  .mobile-joystick {
+    position: absolute;
+
+    left: 0;
+    bottom: 0;
+
+    width: 150px;
+    height: 150px;
+
+    border-radius: 50%;
+
+    background:
+      radial-gradient(
+        circle,
+        rgba(255,255,255,.11) 0%,
+        rgba(255,255,255,.055) 55%,
+        rgba(255,255,255,.025) 100%
+      );
+
+    border:
+      2px solid
+      rgba(255,255,255,.18);
+
+    box-shadow:
+      inset 0 0 30px
+      rgba(0,0,0,.25),
+
+      0 8px 30px
+      rgba(0,0,0,.25);
+
+    pointer-events: auto;
+
+    touch-action: none;
+  }
+
+  .mobile-joystick-ring {
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    width: 92px;
+    height: 92px;
+
+    transform:
+      translate(-50%, -50%);
+
+    border-radius: 50%;
+
+    border:
+      1px solid
+      rgba(255,255,255,.08);
+  }
+
+  .mobile-joystick-stick {
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    width: 64px;
+    height: 64px;
+
+    transform:
+      translate(-50%, -50%);
+
+    border-radius: 50%;
+
+    background:
+      radial-gradient(
+        circle at 35% 30%,
+        rgba(255,255,255,.45),
+        rgba(255,255,255,.12) 45%,
+        rgba(0,0,0,.15)
+      );
+
+    border:
+      2px solid
+      rgba(255,255,255,.28);
+
+    box-shadow:
+      0 6px 18px
+      rgba(0,0,0,.35);
+
+    pointer-events: none;
+  }
+
+  /* =======================================================
+     SPRINT
+     ======================================================= */
+
+  .mobile-sprint {
+    position: absolute;
+
+    left: 112px;
+    bottom: 112px;
+  }
+
+  /* =======================================================
+     LOOK AREA
+     ======================================================= */
+
+  .mobile-look-area {
+    position: absolute;
+
+    right: 0;
+    top: 70px;
+    bottom: 0;
+
+    width: 55%;
+
+    pointer-events: auto;
+
+    background: transparent;
+
+    touch-action: none;
+  }
+
+  /*
+   * دکمه‌ها بالای Look Area هستند،
+   * بنابراین خودشون همچنان قابل لمس می‌مونن.
+   */
+
+  /* =======================================================
+     RIGHT SIDE
+     ======================================================= */
+
+  .mobile-right {
+    position: absolute;
+
+    right: 22px;
+    bottom: 22px;
+
+    width: 230px;
+    height: 210px;
+
+    pointer-events: none;
+  }
+
+  /* =======================================================
+     PLAYER ACTIONS
+     ======================================================= */
+
+  .mobile-player-actions {
+    position: absolute;
+
+    right: 0;
+    bottom: 0;
+
+    pointer-events: none;
+  }
+
+  .mobile-action-button {
+    border: 1px solid
+      rgba(255,255,255,.2);
+
+    background:
+      rgba(8, 13, 20, .72);
+
+    color: white;
+
+    backdrop-filter:
+      blur(10px);
+
+    box-shadow:
+      0 6px 22px
+      rgba(0,0,0,.35);
+
+    font-weight: 800;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-direction: column;
+
+    gap: 4px;
+
+    cursor: pointer;
+
+    pointer-events: auto;
+
+    transition:
+      transform .08s ease,
+      background .1s ease;
+  }
+
+  .mobile-action-button:active,
+  .mobile-action-button.pressed {
+    transform: scale(.91);
+
+    background:
+      rgba(70,130,190,.8);
+  }
+
+  .mobile-button-icon {
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .mobile-jump {
+    width: 74px;
+    height: 74px;
+
+    border-radius: 50%;
+
+    font-size: 11px;
+  }
+
+  /* =======================================================
+     VEHICLE ACTIONS
+     ======================================================= */
+
+  .mobile-vehicle-actions {
+    display: none;
+
+    position: absolute;
+
+    right: 0;
+    bottom: 0;
+
+    gap: 12px;
+
+    align-items: flex-end;
+
+    pointer-events: none;
+  }
+
+  #mobile-controls.driving
+  .mobile-player-actions {
+    display: none;
+  }
+
+  #mobile-controls.driving
+  .mobile-vehicle-actions {
+    display: flex;
+  }
+
+  .mobile-button {
+    width: 82px;
+    height: 82px;
+
+    border-radius: 50%;
+
+    border: 2px solid
+      rgba(255,255,255,.18);
+
+    background:
+      rgba(8, 13, 20, .78);
+
+    color: white;
+
+    font-size: 13px;
+    font-weight: 900;
+
+    letter-spacing: 1px;
+
+    box-shadow:
+      0 8px 26px
+      rgba(0,0,0,.4);
+
+    backdrop-filter:
+      blur(10px);
+
+    pointer-events: auto;
+
+    cursor: pointer;
+
+    transition:
+      transform .08s ease,
+      background .1s ease;
+  }
+
+  .mobile-button:active,
+  .mobile-button.pressed {
+    transform: scale(.9);
+  }
+
+  .mobile-gas:active,
+  .mobile-gas.pressed {
+    background:
+      rgba(40, 170, 90, .82);
+  }
+
+  .mobile-brake:active,
+  .mobile-brake.pressed {
+    background:
+      rgba(190, 55, 55, .82);
+  }
+
+  /* =======================================================
+     VEHICLE STEERING MODE
+     ======================================================= */
+
+  /*
+   * وقتی سوار ماشین هستیم،
+   * ظاهر جوی‌استیک به فرمون نزدیک می‌شود.
+   */
+
+  #mobile-controls.driving
+  .mobile-joystick {
+    width: 164px;
+    height: 164px;
+
+    background:
+      radial-gradient(
+        circle,
+        rgba(30,40,50,.92) 0%,
+        rgba(10,15,22,.88) 65%,
+        rgba(5,8,12,.94) 100%
+      );
+
+    border:
+      3px solid
+      rgba(255,255,255,.16);
+
+    box-shadow:
+      inset 0 0 35px
+      rgba(0,0,0,.45),
+
+      0 10px 30px
+      rgba(0,0,0,.35);
+  }
+
+  #mobile-controls.driving
+  .mobile-joystick-ring {
+    width: 118px;
+    height: 118px;
+
+    border:
+      2px dashed
+      rgba(255,255,255,.15);
+  }
+
+  #mobile-controls.driving
+  .mobile-joystick-stick {
+    width: 76px;
+    height: 76px;
+
+    background:
+      radial-gradient(
+        circle,
+        #303943 0%,
+        #171d24 65%,
+        #0a0e13 100%
+      );
+
+    border:
+      2px solid
+      rgba(255,255,255,.25);
+
+    box-shadow:
+      0 8px 20px
+      rgba(0,0,0,.5);
+  }
+
+  /*
+   * علامت‌های فرمون
+   */
+
+  #mobile-controls.driving
+  .mobile-joystick::before {
+    content: '↔';
+
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    transform:
+      translate(-50%, -50%);
+
+    color:
+      rgba(255,255,255,.14);
+
+    font-size: 48px;
+    font-weight: 300;
+
+    pointer-events: none;
+  }
+
+  #mobile-controls.driving
+  .mobile-joystick-stick {
+    z-index: 2;
+  }
+
+  /* =======================================================
+     SMALL SCREENS
+     ======================================================= */
+
+  @media (max-width: 700px) {
+
+    .mobile-left {
+      left: 14px;
+      bottom: 14px;
+    }
+
+    .mobile-right {
+      right: 14px;
+      bottom: 14px;
+    }
+
+    .mobile-joystick {
+      width: 135px;
+      height: 135px;
+    }
+
+    .mobile-joystick-stick {
+      width: 58px;
+      height: 58px;
+    }
+
+    .mobile-sprint {
+      left: 100px;
+      bottom: 100px;
+    }
+
+    .mobile-button {
+      width: 72px;
+      height: 72px;
+    }
+
+    .mobile-top-right {
+      right: 12px;
+      top: 12px;
+    }
+
+    .mobile-small-button {
+      width: 42px;
+      height: 42px;
+    }
+
+    #mobile-controls.driving
+    .mobile-joystick {
+      width: 145px;
+      height: 145px;
+    }
+
+    #mobile-controls.driving
+    .mobile-joystick-stick {
+      width: 66px;
+      height: 66px;
+    }
+  }
+}
+/* =========================================================
+   CHARACTER SELECT
+   ========================================================= */
+
+#character-select {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 28px;
+
+  overflow: hidden;
+
+  font-family:
+    Inter,
+    Arial,
+    sans-serif;
+
+  color: #fff;
+}
+
+#character-select.hidden {
+  display: none;
+}
+
+.character-select-backdrop {
+  position: absolute;
+  inset: 0;
+
+  background:
+    radial-gradient(
+      circle at 50% 35%,
+      rgba(65, 110, 170, 0.25),
+      transparent 40%
+    ),
+    linear-gradient(
+      135deg,
+      #070b12,
+      #101827 55%,
+      #070b11
+    );
+}
+
+.character-select-panel {
+  position: relative;
+
+  width: min(
+    1050px,
+    100%
+  );
+
+  max-height: 92vh;
+
+  padding: 34px;
+
+  border: 1px solid
+    rgba(255,255,255,.12);
+
+  border-radius: 26px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(25,35,52,.92),
+      rgba(8,13,22,.94)
+    );
+
+  box-shadow:
+    0 30px 100px
+    rgba(0,0,0,.65);
+
+  backdrop-filter:
+    blur(22px);
+
+  overflow: hidden;
+}
+
+.character-select-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  margin-bottom: 26px;
+}
+
+.character-select-kicker {
+  margin-bottom: 6px;
+
+  color: #79b7ff;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  letter-spacing: 4px;
+}
+
+.character-select-header h1 {
+  margin: 0;
+
+  font-size: 34px;
+  line-height: 1.1;
+}
+
+.character-select-header p {
+  margin:
+    9px 0 0;
+
+  color: #8e9caf;
+
+  font-size: 14px;
+}
+
+.character-select-counter {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  color: #66758a;
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.character-select-counter span:first-child {
+  color: #fff;
+  font-size: 26px;
+}
+
+.character-counter-line {
+  opacity: .35;
+}
+
+.character-select-content {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1.35fr)
+    minmax(280px, .65fr);
+
+  gap: 28px;
+
+  align-items: stretch;
+}
+
+.character-preview-card {
+  position: relative;
+
+  min-height: 500px;
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    rgba(255,255,255,.08);
+
+  border-radius: 22px;
+
+  background:
+    radial-gradient(
+      circle at center 42%,
+      rgba(78,128,190,.18),
+      transparent 48%
+    ),
+    #0a101b;
+}
+
+.character-preview-card::after {
+  content: '';
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      to top,
+      rgba(4,7,12,.5),
+      transparent 35%
+    );
+}
+
+#preview-canvas {
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  display: block;
+}
+
+.character-preview-glow {
+  position: absolute;
+
+  width: 330px;
+  height: 330px;
+
+  left: 50%;
+  top: 48%;
+
+  transform:
+    translate(-50%, -50%);
+
+  border-radius: 50%;
+
+  background:
+    rgba(82,145,220,.12);
+
+  filter: blur(60px);
+
+  pointer-events: none;
+}
+
+.character-loading {
+  position: absolute;
+
+  left: 50%;
+  bottom: 24px;
+
+  transform:
+    translateX(-50%);
+
+  display: flex;
+  gap: 5px;
+
+  opacity: 0;
+
+  transition:
+    opacity .2s;
+}
+
+.character-loading-active
+.character-loading {
+  opacity: 1;
+}
+
+.character-loading span {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: #79b7ff;
+
+  animation:
+    character-loading 1s
+    infinite;
+}
+
+.character-loading span:nth-child(2) {
+  animation-delay: .15s;
+}
+
+.character-loading span:nth-child(3) {
+  animation-delay: .3s;
+}
+
+@keyframes character-loading {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: .3;
+  }
+
+  50% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+
+.character-info {
+  display: flex;
+  flex-direction: column;
+
+  justify-content: center;
+
+  padding: 10px 8px;
+}
+
+.character-info-label {
+  color: #718198;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing: 3px;
+}
+
+.character-name {
+  margin-top: 8px;
+
+  font-size: 34px;
+  font-weight: 800;
+
+  letter-spacing: -.5px;
+}
+
+.character-info-line {
+  width: 48px;
+  height: 3px;
+
+  margin:
+    18px 0;
+
+  border-radius: 99px;
+
+  background: #79b7ff;
+}
+
+.character-description {
+  margin: 0 0 28px;
+
+  color: #8794a7;
+
+  font-size: 14px;
+
+  line-height: 1.8;
+}
+
+.character-navigation {
+  display: grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap: 10px;
+
+  margin-bottom: 12px;
+}
+
+.character-nav-button {
+  min-height: 50px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.1);
+
+  border-radius: 13px;
+
+  background:
+    rgba(255,255,255,.045);
+
+  color: #dbe4ef;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    transform .15s,
+    background .15s,
+    border-color .15s;
+}
+
+.character-nav-button:hover {
+  transform: translateY(-2px);
+
+  background:
+    rgba(255,255,255,.08);
+
+  border-color:
+    rgba(121,183,255,.4);
+}
+
+.character-nav-button span {
+  margin: 0 5px;
+
+  font-size: 22px;
+
+  vertical-align: -2px;
+}
+
+.character-start-button {
+  width: 100%;
+  min-height: 58px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 20px;
+
+  border: 0;
+
+  border-radius: 15px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #4b8fd8,
+      #6aaeff
+    );
+
+  color: #fff;
+
+  font-size: 15px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 10px 30px
+    rgba(70,140,220,.2);
+
+  transition:
+    transform .15s,
+    filter .15s;
+}
+
+.character-start-button:hover {
+  transform:
+    translateY(-2px);
+
+  filter:
+    brightness(1.08);
+}
+
+.character-start-button strong {
+  font-size: 24px;
+}
+
+.character-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  margin-top: 15px;
+
+  color: #59687b;
+
+  font-size: 11px;
+}
+
+.character-hint span {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 22px;
+  height: 22px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.08);
+
+  border-radius: 5px;
+
+  color: #91a0b4;
+}
+
+
+/* =========================================================
+   MOBILE CONTROLS
+   ========================================================= */
+
+#mobile-controls {
+  display: none;
+}
+
+@media
+(max-width: 900px),
+(pointer: coarse) {
+
+  #mobile-controls {
+    position: fixed;
+    inset: 0;
+
+    z-index: 9000;
+
+    display: block;
+
+    pointer-events: none;
+
+    user-select: none;
+    -webkit-user-select: none;
+
+    touch-action: none;
+
+    font-family:
+      Inter,
+      Arial,
+      sans-serif;
+  }
+
+  #mobile-controls * {
+    box-sizing: border-box;
+
+    -webkit-tap-highlight-color:
+      transparent;
+
+    touch-action: none;
+  }
+
+  .mobile-ui {
+    position: absolute;
+    inset: 0;
+
+    pointer-events: none;
+  }
+
+  .mobile-orientation {
+    display: none;
+
+    position: fixed;
+    inset: 0;
+
+    z-index: 100;
+
+    align-items: center;
+    justify-content: center;
+
+    flex-direction: column;
+
+    text-align: center;
+
+    padding: 25px;
+
+    background: #080b10;
+
+    pointer-events: auto;
+  }
+
+  #mobile-controls.portrait
+  .mobile-orientation {
+    display: flex;
+  }
+
+  #mobile-controls.portrait
+  .mobile-ui {
+    display: none;
+  }
+
+  .mobile-orientation-icon {
+    margin-bottom: 15px;
+
+    font-size: 58px;
+  }
+
+  .mobile-orientation-title {
+    font-size: 23px;
+    font-weight: 800;
+  }
+
+  .mobile-orientation-text {
+    max-width: 320px;
+
+    margin-top: 10px;
+
+    color: #8c98a9;
+
+    font-size: 13px;
+
+    line-height: 1.7;
+  }
+
+  /* TOP */
+
+  .mobile-top-left {
+    position: absolute;
+
+    left: 20px;
+    top: 18px;
+
+    z-index: 5;
+  }
+
+  .mobile-game-label {
+    padding:
+      8px 13px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.1);
+
+    border-radius: 9px;
+
+    background:
+      rgba(7,11,18,.55);
+
+    backdrop-filter:
+      blur(10px);
+
+    color: #dce8f5;
+
+    font-size: 11px;
+    font-weight: 900;
+
+    letter-spacing: 3px;
+  }
+
+  .mobile-top-right {
+    position: absolute;
+
+    right: 18px;
+    top: 18px;
+
+    z-index: 10;
+
+    display: flex;
+
+    gap: 8px;
+
+    pointer-events: auto;
+  }
+
+  .mobile-small-button {
+    min-width: 46px;
+    min-height: 46px;
+
+    padding: 0 11px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.13);
+
+    border-radius: 12px;
+
+    background:
+      rgba(7,11,18,.68);
+
+    backdrop-filter:
+      blur(12px);
+
+    color: #eaf2fb;
+
+    font-size: 13px;
+    font-weight: 800;
+
+    box-shadow:
+      0 8px 25px
+      rgba(0,0,0,.2);
+  }
+
+  .mobile-interact-button {
+    min-width: 118px;
+  }
+
+  .mobile-interact-button.hidden {
+    display: none;
+  }
+
+  .mobile-interact-icon {
+    font-size: 17px;
+  }
+
+  .mobile-interact-text {
+    white-space: nowrap;
+  }
+
+  /* LEFT */
+
+  .mobile-left {
+    position: absolute;
+
+    left: 24px;
+    bottom: 25px;
+
+    z-index: 5;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 15px;
+
+    pointer-events: none;
+  }
+
+  .mobile-joystick {
+    position: relative;
+
+    width: 132px;
+    height: 132px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border:
+      1px solid
+      rgba(255,255,255,.13);
+
+    border-radius: 50%;
+
+    background:
+      radial-gradient(
+        circle,
+        rgba(40,54,74,.8),
+        rgba(8,13,20,.65)
+      );
+
+    box-shadow:
+      inset 0 0 30px
+      rgba(0,0,0,.35),
+      0 12px 40px
+      rgba(0,0,0,.3);
+
+    pointer-events: auto;
+
+    --steer-rotation: 0deg;
+  }
+
+  .mobile-joystick-ring {
+    position: absolute;
+
+    width: 88px;
+    height: 88px;
+
+    border:
+      2px solid
+      rgba(255,255,255,.12);
+
+    border-radius: 50%;
+
+    pointer-events: none;
+  }
+
+  .mobile-joystick-stick {
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    width: 58px;
+    height: 58px;
+
+    transform:
+      translate(-50%, -50%);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border:
+      1px solid
+      rgba(255,255,255,.2);
+
+    border-radius: 50%;
+
+    background:
+      radial-gradient(
+        circle at 35% 30%,
+        #40516a,
+        #182333 70%
+      );
+
+    box-shadow:
+      0 8px 22px
+      rgba(0,0,0,.4);
+
+    pointer-events: none;
+  }
+
+  .mobile-steering-center {
+    width: 32px;
+    height: 32px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border:
+      2px solid
+      rgba(255,255,255,.15);
+
+    border-radius: 50%;
+
+    background:
+      rgba(5,9,15,.5);
+  }
+
+  .mobile-steering-logo {
+    color: #a9c9ec;
+
+    font-size: 10px;
+    font-weight: 900;
+
+    letter-spacing: 1px;
+  }
+
+  .mobile-steering-spoke {
+    display: none;
+  }
+
+  /* DRIVING WHEEL */
+
+  #mobile-controls.driving
+  .mobile-joystick {
+    width: 166px;
+    height: 166px;
+
+    background:
+      radial-gradient(
+        circle,
+        rgba(25,34,48,.94),
+        rgba(5,9,14,.92)
+      );
+
+    border:
+      2px solid
+      rgba(255,255,255,.2);
+
+    transform:
+      rotate(var(--steer-rotation));
+
+    transition:
+      transform .06s linear;
+  }
+
+  #mobile-controls.driving
+  .mobile-joystick-ring {
+    width: 124px;
+    height: 124px;
+
+    border:
+      9px solid
+      rgba(95,116,143,.65);
+
+    border-top-color:
+      rgba(255,255,255,.8);
+
+    border-bottom-color:
+      rgba(60,78,101,.7);
+  }
+
+  #mobile-controls.driving
+  .mobile-joystick-stick {
+    width: 66px;
+    height: 66px;
+
+    transform:
+      translate(-50%, -50%);
+
+    background:
+      radial-gradient(
+        circle at 35% 30%,
+        #34455c,
+        #101925 72%
+      );
+  }
+
+  #mobile-controls.driving
+  .mobile-steering-spoke {
+    display: block;
+
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    width: 5px;
+    height: 48px;
+
+    transform-origin:
+      50% 100%;
+
+    border-radius: 99px;
+
+    background:
+      rgba(130,151,178,.7);
+
+    pointer-events: none;
+  }
+
+  #mobile-controls.driving
+  .spoke-a {
+    transform:
+      translate(-50%, -100%)
+      rotate(0deg);
+  }
+
+  #mobile-controls.driving
+  .spoke-b {
+    transform:
+      translate(-50%, -100%)
+      rotate(120deg);
+  }
+
+  #mobile-controls.driving
+  .spoke-c {
+    transform:
+      translate(-50%, -100%)
+      rotate(240deg);
+  }
+
+  #mobile-controls.driving
+  .mobile-sprint {
+    display: none;
+  }
+
+  /* RIGHT */
+
+  .mobile-look-area {
+    position: absolute;
+
+    right: 0;
+    top: 75px;
+    bottom: 0;
+
+    width: 54%;
+
+    z-index: 1;
+
+    pointer-events: auto;
+
+    background: transparent;
+  }
+
+  .mobile-right {
+    position: absolute;
+
+    right: 25px;
+    bottom: 25px;
+
+    z-index: 5;
+
+    pointer-events: none;
+  }
+
+  .mobile-player-actions {
+    display: flex;
+
+    pointer-events: auto;
+  }
+
+  .mobile-action-button {
+    min-width: 82px;
+    min-height: 58px;
+
+    padding:
+      8px 14px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 3px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.14);
+
+    border-radius: 15px;
+
+    background:
+      rgba(8,13,21,.72);
+
+    backdrop-filter:
+      blur(12px);
+
+    color: #edf5ff;
+
+    font-size: 11px;
+    font-weight: 800;
+
+    pointer-events: auto;
+  }
+
+  .mobile-button-icon {
+    font-size: 21px;
+  }
+
+  .mobile-vehicle-actions {
+    display: none;
+
+    align-items: flex-end;
+
+    gap: 12px;
+
+    pointer-events: auto;
+  }
+
+  #mobile-controls.driving
+  .mobile-vehicle-actions {
+    display: flex;
+  }
+
+  .mobile-button {
+    min-width: 82px;
+    min-height: 70px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 4px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.14);
+
+    border-radius: 17px;
+
+    background:
+      rgba(7,12,19,.76);
+
+    backdrop-filter:
+      blur(12px);
+
+    color: #eaf2fa;
+
+    font-size: 11px;
+    font-weight: 900;
+
+    pointer-events: auto;
+  }
+
+  .vehicle-button-icon {
+    font-size: 18px;
+  }
+
+  .mobile-gas {
+    border-color:
+      rgba(95,220,130,.25);
+  }
+
+  .mobile-brake {
+    border-color:
+      rgba(240,100,100,.25);
+  }
+
+  .mobile-gas.pressed {
+    background:
+      rgba(40,150,75,.7);
+
+    transform:
+      scale(.96);
+  }
+
+  .mobile-brake.pressed {
+    background:
+      rgba(170,55,55,.7);
+
+    transform:
+      scale(.96);
+  }
+
+  .mobile-jump.pressed,
+  .mobile-sprint.pressed {
+    transform:
+      scale(.94);
+  }
+}
+
+
+/* =========================================================
+   CHARACTER SELECT MOBILE
+   ========================================================= */
+
+@media
+(max-width: 700px),
+(pointer: coarse) {
+
+  #character-select {
+    padding: 12px;
+    overflow-y: auto;
+  }
+
+  .character-select-panel {
+    max-height: 96vh;
+
+    padding: 20px;
+
+    border-radius: 20px;
+    overflow-y: auto;
+  }
+
+  .character-select-header {
+    margin-bottom: 12px;
+  }
+
+  .character-select-header h1 {
+    font-size: 24px;
+  }
+
+  .character-select-header p {
+    display: none;
+  }
+
+  .character-select-counter span:first-child {
+    font-size: 20px;
+  }
+
+  .character-select-content {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+    gap: 12px;
+  }
+
+  .character-preview-card {
+    min-height: 42vh;
+
+    max-height: 440px;
+  }
+
+  .character-info {
+    padding: 4px;
+  }
+
+  .character-name {
+    font-size: 24px;
+  }
+
+  .character-description {
+    display: none;
+  }
+
+  .character-navigation {
+    margin-bottom: 8px;
+  }
+
+  .character-nav-button {
+    min-height: 44px;
+  }
+
+  .character-start-button {
+    min-height: 52px;
+  }
+
+  .character-hint {
+    display: none;
+  }
+
+  .mobile-left {
+    left: 14px;
+    bottom: 15px;
+  }
+
+  .mobile-right {
+    right: 14px;
+    bottom: 15px;
+  }
+
+  .mobile-joystick {
+    width: 118px;
+    height: 118px;
+  }
+
+  #mobile-controls.driving
+  .mobile-joystick {
+    width: 145px;
+    height: 145px;
+  }
+
+  #mobile-controls.driving
+  .mobile-joystick-ring {
+    width: 108px;
+    height: 108px;
+  }
+
+  .mobile-top-left {
+    left: 12px;
+    top: 12px;
+  }
+
+  .mobile-top-right {
+    right: 12px;
+    top: 12px;
+  }
+
+  .mobile-small-button {
+    min-width: 42px;
+    min-height: 42px;
+  }
+
+  .mobile-interact-button {
+    min-width: 105px;
+  }
+
+  .mobile-look-area {
+    width: 58%;
+  }
+}

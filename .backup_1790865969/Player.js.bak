@@ -1,0 +1,321 @@
+import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
+import { KinematicBody } from '../physics/KinematicBody.js';
+
+export class Player {
+  constructor(physics) {
+    this.physics = physics;
+
+    this.mesh = new THREE.Group();
+    this.mesh.name = 'Player';
+
+    this.body = new CANNON.Body({
+      mass: 70,
+      material: physics.playerMaterial,
+      shape: new CANNON.Sphere(0.5),
+      position: new CANNON.Vec3(0, 1, 0),
+      linearDamping: 0,
+      angularDamping: 1,
+    });
+
+    this.body.fixedRotation = true;
+    this.body.updateMassProperties();
+    this.body.allowSleep = false;
+
+    physics.world.addBody(this.body);
+
+    /*
+     * KinematicBody parameters tuned for gravity = -20.
+     * These values produce snappy, arcade-style movement.
+     */
+    this.controller = new KinematicBody(this.body, {
+      maxSpeed: 7,
+      accelTime: 0.22,
+      decelTime: 0.16,
+      turnSpeed: 10,
+    });
+    
+    this.maxSpeed = 7;
+    this.sprintSpeed = 11;
+
+    this.isMoving = false;
+    this.isSprinting = false;
+    this.moveInput = null;
+    this.facing = 0;
+
+    this.isOnGround = false;
+    this.jumpCooldown = 0;
+    this.jumpForce = 14;
+    this._prevSpace = false;
+
+    this.oneShotTimer = 0;
+    this.oneShotName = null;
+    this.holdState = null;
+
+    this.model = null;
+    this.mixer = null;
+    this.actions = {};
+    this.currentActionName = null;
+    this.fadeTime = 0.12;
+
+    this.keyMap = {
+      j: { name: 'attack-melee-right', duration: 0.42 },
+      l: { name: 'attack-melee-left',  duration: 0.42 },
+      k: { name: 'attack-kick-right',  duration: 0.58 },
+      h: { name: 'attack-kick-left',   duration: 0.58 },
+      e: { name: 'interact-right',     duration: 0.67 },
+      q: { name: 'interact-left',      duration: 0.67 },
+      f: { name: 'pick-up',            duration: 0.33 },
+    };
+
+    this.holdKeyMap = {
+      z: 'holding-right',
+      x: 'holding-left',
+      v: 'holding-both',
+    };
+
+    this._prevKeys = {};
+  }
+
+  setModel(model, animations) {
+    if (this.model) this.mesh.remove(this.model);
+
+    // Scale to 1.5m tall
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+
+    if (size.y > 0) {
+      const scale = 1.5 / size.y;
+      model.scale.setScalar(scale);
+    }
+
+    // Recenter feet on origin
+    const box2 = new THREE.Box3().setFromObject(model);
+    const center = new THREE.Vector3();
+    box2.getCenter(center);
+
+    model.position.x -= center.x;
+    model.position.z -= center.z;
+    model.position.y -= box2.min.y;
+
+    // Make sure model is not tilted
+    model.rotation.set(0, 0, 0);
+
+    model.traverse((node) => {
+      if (!node.isMesh) return;
+      node.castShadow = true;
+      node.receiveShadow = true;
+      node.frustumCulled = false;
+    });
+
+    this.model = model;
+    this.mesh.add(model);
+
+    this.mixer = new THREE.AnimationMixer(model);
+    this.actions = {};
+
+    for (const clip of animations) {
+      const name = clip.name.toLowerCase();
+      const action = this.mixer.clipAction(clip);
+      this.actions[name] = action;
+    }
+
+    console.log('[Player] Animations:', Object.keys(this.actions));
+    this._play('idle', 0);
+  }
+
+  _play(name, fade = this.fadeTime, once = false) {
+    const action = this.actions[name];
+    if (!action) return;
+    if (this.currentActionName === name && !once) return;
+
+    const previous = this.currentActionName
+      ? this.actions[this.currentActionName]
+      : null;
+
+    action.reset();
+
+    if (once) {
+      action.setLoop(THREE.LoopOnce, 1);
+      action.clampWhenFinished = true;
+    } else {
+      action.setLoop(THREE.LoopRepeat, Infinity);
+      action.clampWhenFinished = false;
+    }
+
+    action.enabled = true;
+    if (fade > 0) action.fadeIn(fade);
+    action.play();
+
+    if (previous && previous !== action) {
+      if (fade > 0) previous.fadeOut(fade);
+      else previous.stop();
+    }
+
+    this.currentActionName = name;
+  }
+
+  _triggerOneShot(name, duration) {
+    if (this.oneShotTimer > 0) return;
+    if (!this.actions[name]) return;
+    this.oneShotName = name;
+    this.oneShotTimer = duration;
+    this._play(name, 0.08, true);
+  }
+
+  setInput(keys, cameraYaw) {
+    const forward =
+      (keys.w || keys.arrowup ? 1 : 0) -
+      (keys.s || keys.arrowdown ? 1 : 0);
+    const strafe =
+      (keys.d || keys.arrowright ? 1 : 0) -
+      (keys.a || keys.arrowleft ? 1 : 0);
+
+    const length = Math.hypot(forward, strafe);
+
+    if (length > 0) {
+      this.isMoving = true;
+      this.moveInput = { forward: forward / length, strafe: strafe / length };
+    } else {
+      this.isMoving = false;
+      this.moveInput = null;
+    }
+
+    this.isSprinting = !!keys.shift && this.isMoving;
+
+    const spaceNow = !!keys[' '];
+    if (spaceNow && !this._prevSpace && this.isOnGround && this.jumpCooldown <= 0) {
+      this._jump();
+    }
+    this._prevSpace = spaceNow;
+
+    for (const [key, info] of Object.entries(this.keyMap)) {
+      const pressed = !!keys[key];
+      const wasPressed = !!this._prevKeys[key];
+      if (pressed && !wasPressed) {
+        this._triggerOneShot(info.name, info.duration);
+      }
+      this._prevKeys[key] = pressed;
+    }
+
+    let activeHold = null;
+    for (const [key, animation] of Object.entries(this.holdKeyMap)) {
+      if (keys[key]) { activeHold = animation; break; }
+    }
+    this.holdState = activeHold;
+  }
+
+  _jump() {
+    this.body.velocity.y = this.jumpForce;
+    this.isOnGround = false;
+    this.jumpCooldown = 0.3;
+  }
+
+  update(dt, cameraYaw) {
+    dt = Math.min(dt, 0.05);
+
+    if (this.jumpCooldown > 0) this.jumpCooldown -= dt;
+
+    /*
+     * Ground detection: sphere center at y = 0.5 when resting.
+     * Ground plane is at y = 0.
+     */
+    const groundY = 0.5;
+    
+    this.isOnGround =
+      this.body.position.y <= groundY + 0.08 &&
+      this.body.velocity.y <= 0.5;
+
+    if (this.isMoving && this.moveInput) {
+      const sinY = Math.sin(cameraYaw);
+      const cosY = Math.cos(cameraYaw);
+      const forwardX = -sinY;
+      const forwardZ = -cosY;
+      const rightX = cosY;
+      const rightZ = -sinY;
+
+      const moveX = forwardX * this.moveInput.forward + rightX * this.moveInput.strafe;
+      const moveZ = forwardZ * this.moveInput.forward + rightZ * this.moveInput.strafe;
+
+      this.controller.setDirection(moveX, moveZ, true);
+      this.controller.maxSpeed = this.isSprinting ? this.sprintSpeed : this.maxSpeed;
+
+      const targetYaw = Math.atan2(moveX, moveZ);
+      const rotationSpeed = this.isSprinting ? 20 : 16;
+      const rotationT = 1 - Math.exp(-rotationSpeed * dt);
+
+      this.facing = this._lerpAngle(this.facing, targetYaw, rotationT);
+    } else {
+      this.controller.setDirection(0, 0, false);
+    }
+
+    this.controller.update(dt);
+    this._updateAnimation(dt);
+    if (this.mixer) this.mixer.update(dt);
+    this._updateMesh(dt);
+  }
+
+  _updateAnimation(dt) {
+    if (this.oneShotTimer > 0) {
+      this.oneShotTimer -= dt;
+      if (this.oneShotTimer <= 0) {
+        this.oneShotTimer = 0;
+        this.oneShotName = null;
+        this._updateLocomotionAnimation();
+      }
+      return;
+    }
+
+    if (this.holdState) {
+      if (this.currentActionName !== this.holdState) {
+        this._play(this.holdState, 0.15);
+      }
+      return;
+    }
+
+    this._updateLocomotionAnimation();
+  }
+
+  _updateLocomotionAnimation() {
+    const speed = this.controller.getHorizontalSpeed();
+    const moving = speed > 0.15;
+
+    if (!moving) {
+      if (this.currentActionName !== 'idle') this._play('idle', 0.15);
+      return;
+    }
+
+    const target = this.isSprinting && speed > this.maxSpeed * 0.75 ? 'sprint' : 'walk';
+    if (this.currentActionName !== target) this._play(target, 0.12);
+  }
+
+  _updateMesh() {
+    this.mesh.position.set(
+      this.body.position.x,
+      this.body.position.y - 0.5,
+      this.body.position.z
+    );
+  
+    this.mesh.rotation.y = this.facing + Math.PI;
+  }
+
+  _lerpAngle(a, b, t) {
+    let diff = b - a;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    return a + diff * Math.min(1, t);
+  }
+
+  getPosition() {
+    return new THREE.Vector3(
+      this.body.position.x,
+      this.body.position.y,
+      this.body.position.z
+    );
+  }
+
+  getSpeed() {
+    return this.controller.getHorizontalSpeed();
+  }
+}

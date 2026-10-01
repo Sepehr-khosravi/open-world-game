@@ -1,0 +1,86 @@
+import * as CANNON from 'cannon-es';
+
+export class KinematicBody {
+  constructor(body, options = {}) {
+    this.body = body;
+
+    this.maxSpeed = options.maxSpeed ?? 7;
+
+    // زمان تقریبی رسیدن به حدود 90٪ سرعت
+    this.accelTime = options.accelTime ?? 0.25;
+
+    // زمان تقریبی توقف
+    this.decelTime = options.decelTime ?? 0.18;
+
+    // سرعت تغییر جهت
+    this.turnSpeed = options.turnSpeed ?? 10;
+
+    this.desiredDirection = new CANNON.Vec3(0, 0, 0);
+    this.wantsToMove = false;
+  }
+
+  setDirection(dx, dz, wantsToMove = true) {
+    if (!wantsToMove) {
+      this.wantsToMove = false;
+      return;
+    }
+
+    const length = Math.hypot(dx, dz);
+
+    if (length < 0.0001) {
+      this.wantsToMove = false;
+      return;
+    }
+
+    this.desiredDirection.set(
+      dx / length,
+      0,
+      dz / length
+    );
+
+    this.wantsToMove = true;
+  }
+
+  update(dt) {
+    dt = Math.min(dt, 0.05);
+
+    const vel = this.body.velocity;
+
+    if (this.wantsToMove) {
+      const targetX = this.desiredDirection.x * this.maxSpeed;
+      const targetZ = this.desiredDirection.z * this.maxSpeed;
+
+      const accelRate =
+        -Math.log(0.1) / Math.max(this.accelTime, 0.001);
+
+      const accelT =
+        1 - Math.exp(-accelRate * dt);
+
+      /*
+       * به جای اینکه velocity را ناگهانی عوض کنیم،
+       * به سمت سرعت هدف حرکت می‌کنیم.
+       */
+      vel.x += (targetX - vel.x) * accelT;
+      vel.z += (targetZ - vel.z) * accelT;
+    } else {
+      const decelRate =
+        -Math.log(0.1) / Math.max(this.decelTime, 0.001);
+
+      const decelT =
+        1 - Math.exp(-decelRate * dt);
+
+      vel.x += (0 - vel.x) * decelT;
+      vel.z += (0 - vel.z) * decelT;
+
+      if (Math.abs(vel.x) < 0.01) vel.x = 0;
+      if (Math.abs(vel.z) < 0.01) vel.z = 0;
+    }
+  }
+
+  getHorizontalSpeed() {
+    return Math.hypot(
+      this.body.velocity.x,
+      this.body.velocity.z
+    );
+  }
+}
