@@ -10,6 +10,7 @@ export class MobileControls {
     onLook = null,
     onVehicleGas = null,
     onVehicleBrake = null,
+    onVehicleReverse = null,
     onVehicleSteer = null,
   } = {}) {
     this.onEnterExit = onEnterExit;
@@ -21,6 +22,7 @@ export class MobileControls {
 
     this.onVehicleGas = onVehicleGas;
     this.onVehicleBrake = onVehicleBrake;
+    this.onVehicleReverse = onVehicleReverse;
     this.onVehicleSteer = onVehicleSteer;
 
     this.enabled = true;
@@ -33,7 +35,12 @@ export class MobileControls {
     this.look = { x: 0, y: 0 };
 
     // VEHICLE INPUT
-    this.vehicle = { gas: false, brake: false, steering: 0 };
+    this.vehicle = {
+      gas: false,
+      brake: false,
+      reverse: false,
+      steering: 0,
+    };
 
     // JOYSTICK
     this.joystick = {
@@ -480,22 +487,25 @@ export class MobileControls {
         pointer-events: none;
       }
 
-      /* GAS / BRAKE */
+      /* ======================================================
+       * GAS / BRAKE / REVERSE
+       * ==================================================== */
+
       .mc-driving-actions {
         position: absolute;
         right: 27px;
         bottom: 27px;
         display: flex;
         align-items: flex-end;
-        gap: 12px;
+        gap: 10px;
         pointer-events: none;
         z-index: 20;
       }
 
       .mc-drive-button {
-        width: 76px;
-        height: 76px;
-        border-radius: 24px;
+        width: 72px;
+        height: 72px;
+        border-radius: 22px;
         border: 1px solid rgba(255,255,255,.13);
         background: linear-gradient(145deg, rgba(255,255,255,.12), rgba(0,0,0,.28));
         color: white;
@@ -503,7 +513,7 @@ export class MobileControls {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 900;
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
@@ -516,10 +526,10 @@ export class MobileControls {
       }
 
       .mc-drive-button span {
-        margin-top: 4px;
-        font-size: 8px;
+        margin-top: 3px;
+        font-size: 7px;
         letter-spacing: 1px;
-        opacity: .55;
+        opacity: .6;
         pointer-events: none;
       }
 
@@ -529,14 +539,41 @@ export class MobileControls {
         background: rgba(255,255,255,.2);
       }
 
-      .mc-gas {
-        height: 88px;
-        background: linear-gradient(145deg, rgba(65,190,120,.24), rgba(20,70,45,.4));
+      /* Reverse (زرد نارنجی) */
+      .mc-reverse {
+        height: 66px;
+        background: linear-gradient(145deg, rgba(230,180,60,.24), rgba(90,60,15,.4));
+        border-color: rgba(255,210,110,.28);
       }
 
+      /* Brake (قرمز) */
       .mc-brake {
-        height: 68px;
-        background: linear-gradient(145deg, rgba(220,70,70,.18), rgba(80,20,20,.32));
+        height: 72px;
+        background: linear-gradient(145deg, rgba(220,70,70,.20), rgba(80,20,20,.36));
+        border-color: rgba(240,100,100,.22);
+      }
+
+      /* Gas (سبز) */
+      .mc-gas {
+        height: 88px;
+        background: linear-gradient(145deg, rgba(65,190,120,.26), rgba(20,70,45,.42));
+        border-color: rgba(95,220,130,.28);
+      }
+
+      /* Pressed colors */
+      .mc-gas.active,
+      .mc-gas:active {
+        background: linear-gradient(145deg, rgba(65,210,120,.55), rgba(30,110,65,.6));
+      }
+
+      .mc-brake.active,
+      .mc-brake:active {
+        background: linear-gradient(145deg, rgba(240,80,80,.55), rgba(120,25,25,.6));
+      }
+
+      .mc-reverse.active,
+      .mc-reverse:active {
+        background: linear-gradient(145deg, rgba(240,190,70,.55), rgba(130,85,15,.6));
       }
 
       /* MODES */
@@ -621,8 +658,27 @@ export class MobileControls {
         .mc-driving-actions {
           right: 16px;
           bottom: 16px;
-          transform: scale(.9);
+          transform: scale(.85);
           transform-origin: bottom right;
+          gap: 8px;
+        }
+
+        .mc-drive-button {
+          width: 64px;
+          height: 64px;
+          font-size: 20px;
+        }
+
+        .mc-gas {
+          height: 78px;
+        }
+
+        .mc-brake {
+          height: 64px;
+        }
+
+        .mc-reverse {
+          height: 58px;
         }
       }
     `;
@@ -691,10 +747,16 @@ export class MobileControls {
         </div>
 
         <div class="mc-driving-actions">
+          <button class="mc-drive-button mc-reverse" type="button">
+            ▼
+            <span>REV</span>
+          </button>
+
           <button class="mc-drive-button mc-brake" type="button">
             ◀
             <span>BRAKE</span>
           </button>
+
           <button class="mc-drive-button mc-gas" type="button">
             ▲
             <span>GAS</span>
@@ -742,6 +804,7 @@ export class MobileControls {
     this.steeringWheel = this.root.querySelector('.mc-steering-wheel');
     this.gasButton = this.root.querySelector('.mc-gas');
     this.brakeButton = this.root.querySelector('.mc-brake');
+    this.reverseButton = this.root.querySelector('.mc-reverse');
   }
 
   // ============================================================
@@ -1031,6 +1094,7 @@ export class MobileControls {
   // ============================================================
 
   _setupVehicleButtons() {
+    /* GAS */
     this._bindHold(
       this.gasButton,
       () => {
@@ -1045,6 +1109,7 @@ export class MobileControls {
       }
     );
 
+    /* BRAKE */
     this._bindHold(
       this.brakeButton,
       () => {
@@ -1056,6 +1121,21 @@ export class MobileControls {
         this.vehicle.brake = false;
         this.brakeButton.classList.remove('active');
         this.onVehicleBrake?.(false);
+      }
+    );
+
+    /* REVERSE */
+    this._bindHold(
+      this.reverseButton,
+      () => {
+        this.vehicle.reverse = true;
+        this.reverseButton.classList.add('active');
+        this.onVehicleReverse?.(true);
+      },
+      () => {
+        this.vehicle.reverse = false;
+        this.reverseButton.classList.remove('active');
+        this.onVehicleReverse?.(false);
       }
     );
   }
@@ -1184,6 +1264,7 @@ export class MobileControls {
     return {
       gas: this.vehicle.gas,
       brake: this.vehicle.brake,
+      reverse: this.vehicle.reverse,
       steering: this.vehicle.steering,
     };
   }
@@ -1206,7 +1287,6 @@ export class MobileControls {
       this.resetVehicleControls();
     }
 
-    // دکمه interact باید در هر دو حالت قابل مشاهده باشد
     this._refreshInteractVisibility();
   }
 
@@ -1238,10 +1318,12 @@ export class MobileControls {
   resetVehicleControls() {
     this.vehicle.gas = false;
     this.vehicle.brake = false;
+    this.vehicle.reverse = false;
     this.vehicle.steering = 0;
 
     this.onVehicleGas?.(false);
     this.onVehicleBrake?.(false);
+    this.onVehicleReverse?.(false);
     this.onVehicleSteer?.(0);
 
     if (this.steeringWheel) {
@@ -1262,6 +1344,7 @@ export class MobileControls {
     this.jumpButton?.classList.remove('active');
     this.gasButton?.classList.remove('active');
     this.brakeButton?.classList.remove('active');
+    this.reverseButton?.classList.remove('active');
   }
 
   destroy() {
