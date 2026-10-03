@@ -426,12 +426,13 @@ export class Player {
     // JUMP
     // ==========================================================
 
-    const spaceNow =
-      !!keys[' '];
-
-    const jumpPressed =
-      spaceNow &&
-      !this._prevSpace;
+  const spaceNow =
+    !!keys[' '] ||
+    !!keys.space;
+  
+  const jumpPressed =
+    spaceNow &&
+    !this._prevSpace;
 
     if (
       jumpPressed &&

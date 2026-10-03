@@ -40,7 +40,12 @@ function isLandscape() {
 const scene = new THREE.Scene();
 
 scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 400, 1500);
+
+scene.fog = new THREE.Fog(
+  0x87ceeb,
+  400,
+  1500
+);
 
 /* =========================================================
  * CORE
@@ -49,14 +54,14 @@ scene.fog = new THREE.Fog(0x87ceeb, 400, 1500);
 const physics = new Physics();
 const assets = new AssetLoader();
 
-const world = new World(physics, assets);
+const world = new World(
+  physics,
+  assets
+);
 
 /*
- * موبایل:
- * به جای کوچک کردن خود chunk، تعداد chunkهای فعال
- * اطراف بازیکن را کم می‌کنیم.
- *
- * این روش امن‌تر است چون ساختار داخلی City به هم نمی‌ریزد.
+ * روی موبایل تعداد chunkهای فعال
+ * اطراف بازیکن را محدود می‌کنیم.
  */
 if (isMobile) {
   world.city.renderDistance = 1;
@@ -64,25 +69,38 @@ if (isMobile) {
 
 scene.add(world.group);
 
-const player = new Player(physics);
+const player = new Player(
+  physics
+);
+
 scene.add(player.mesh);
 
-const vehicles = new VehicleManager(scene, physics, assets);
+const vehicles =
+  new VehicleManager(
+    scene,
+    physics,
+    assets
+  );
 
-const dashboard = new Dashboard();
+const dashboard =
+  new Dashboard();
 
 /* =========================================================
  * RENDERER
  * ========================================================= */
 
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: true,
-  powerPreference: 'high-performance',
-});
+const renderer =
+  new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+    powerPreference: 'high-performance',
+  });
 
 renderer.setPixelRatio(
-  Math.min(window.devicePixelRatio, 1.5)
+  Math.min(
+    window.devicePixelRatio,
+    1.5
+  )
 );
 
 renderer.setSize(
@@ -92,19 +110,25 @@ renderer.setSize(
 );
 
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+renderer.shadowMap.type =
+  THREE.PCFShadowMap;
+
+renderer.toneMapping =
+  THREE.ACESFilmicToneMapping;
 
 /* =========================================================
  * CAMERA
  * ========================================================= */
 
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.05,
-  4000
-);
+const camera =
+  new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth /
+      window.innerHeight,
+    0.05,
+    4000
+  );
 
 let camYaw = 0;
 let camPitch = 0;
@@ -113,17 +137,26 @@ let camDistance = 2.4;
 let cameraDistanceSmooth = 2.4;
 
 let isLocked = false;
+
 let sensitivity = 2.0;
 
 let firstPerson = true;
 
 const EYE_HEIGHT = 1.25;
 
+/* ---------------------------------------------------------
+ * Driving camera
+ * --------------------------------------------------------- */
+
 let driveCamDistance = 3.0;
 let driveCamPitch = 0.20;
 let driveCamYaw = 0;
 
 let firstPersonBeforeDriving = true;
+
+/* ---------------------------------------------------------
+ * Player visibility
+ * --------------------------------------------------------- */
 
 let headParts = [];
 
@@ -134,10 +167,13 @@ let headParts = [];
 function findPlayerParts() {
   headParts = [];
 
-  if (!player.mesh) return;
+  if (!player.mesh) {
+    return;
+  }
 
   player.mesh.traverse((node) => {
-    const name = (node.name || '').toLowerCase();
+    const name =
+      (node.name || '').toLowerCase();
 
     if (name.includes('head')) {
       headParts.push(node);
@@ -146,17 +182,26 @@ function findPlayerParts() {
 }
 
 function applyFirstPersonVisibility() {
-  if (!player.mesh) return;
+  if (!player.mesh) {
+    return;
+  }
 
+  /*
+   * اگر head پیدا نشد،
+   * کل مدل را در First Person مخفی می‌کنیم.
+   */
   if (headParts.length === 0) {
-    player.mesh.visible = !firstPerson;
+    player.mesh.visible =
+      !firstPerson;
+
     return;
   }
 
   player.mesh.visible = true;
 
-  for (const p of headParts) {
-    p.visible = !firstPerson;
+  for (const part of headParts) {
+    part.visible =
+      !firstPerson;
   }
 }
 
@@ -167,67 +212,124 @@ function applyFirstPersonVisibility() {
 canvas.tabIndex = 0;
 canvas.style.outline = 'none';
 
-window.addEventListener('click', (e) => {
-  if (e.target.closest('#settings-menu')) return;
-  if (e.target.closest('#character-select')) return;
+window.addEventListener(
+  'click',
+  (e) => {
+    if (
+      e.target.closest(
+        '#settings-menu'
+      )
+    ) {
+      return;
+    }
 
-  /*
-   * روی موبایل Pointer Lock نداریم.
-   */
-  if (isMobile) return;
+    if (
+      e.target.closest(
+        '#character-select'
+      )
+    ) {
+      return;
+    }
 
-  if (!isLocked) {
-    canvas.focus();
-    canvas.requestPointerLock();
+    /*
+     * موبایل Pointer Lock ندارد.
+     */
+    if (isMobile) {
+      return;
+    }
+
+    if (!isLocked) {
+      canvas.focus();
+
+      canvas.requestPointerLock();
+    }
   }
-});
+);
 
-document.addEventListener('pointerlockchange', () => {
-  isLocked =
-    document.pointerLockElement === canvas;
-});
+document.addEventListener(
+  'pointerlockchange',
+  () => {
+    isLocked =
+      document.pointerLockElement ===
+      canvas;
+  }
+);
 
-document.addEventListener('pointerlockerror', () => {
-  console.error('[PointerLock] Error');
-});
+document.addEventListener(
+  'pointerlockerror',
+  () => {
+    console.error(
+      '[PointerLock] Error'
+    );
+  }
+);
 
 /* =========================================================
  * MOUSE CAMERA
  * ========================================================= */
 
-document.addEventListener('mousemove', (e) => {
-  if (!isLocked) return;
+document.addEventListener(
+  'mousemove',
+  (e) => {
+    if (!isLocked) {
+      return;
+    }
 
-  const s = sensitivity * 0.001;
+    const s =
+      sensitivity * 0.001;
 
-  if (vehicles.isDriving()) {
-    driveCamYaw -= e.movementX * s;
+    /*
+     * Driving camera
+     */
+    if (vehicles.isDriving()) {
+      driveCamYaw -=
+        e.movementX * s;
 
-    driveCamPitch += e.movementY * s;
+      driveCamPitch +=
+        e.movementY * s;
 
-    driveCamPitch = Math.max(
-      -0.3,
-      Math.min(1.2, driveCamPitch)
-    );
+      driveCamPitch =
+        Math.max(
+          -0.3,
+          Math.min(
+            1.2,
+            driveCamPitch
+          )
+        );
 
-    return;
+      return;
+    }
+
+    /*
+     * Player camera
+     */
+    camYaw -=
+      e.movementX * s;
+
+    camPitch +=
+      e.movementY * s;
+
+    if (firstPerson) {
+      camPitch =
+        Math.max(
+          -1.5,
+          Math.min(
+            1.5,
+            camPitch
+          )
+        );
+    } else {
+      camPitch =
+        Math.max(
+          -0.3,
+          Math.min(
+            1.2,
+            camPitch
+          )
+        );
+    }
   }
-
-  camYaw -= e.movementX * s;
-  camPitch += e.movementY * s;
-
-  if (firstPerson) {
-    camPitch = Math.max(
-      -1.5,
-      Math.min(1.5, camPitch)
-    );
-  } else {
-    camPitch = Math.max(
-      -0.3,
-      Math.min(1.2, camPitch)
-    );
-  }
-});
+);
 
 /* =========================================================
  * MOUSE WHEEL
@@ -236,290 +338,153 @@ document.addEventListener('mousemove', (e) => {
 canvas.addEventListener(
   'wheel',
   (e) => {
+    /*
+     * Driving camera zoom
+     */
     if (vehicles.isDriving()) {
-      driveCamDistance = Math.max(
-        2,
-        Math.min(
-          10,
-          driveCamDistance + e.deltaY * 0.01
-        )
-      );
+      driveCamDistance =
+        Math.max(
+          2,
+          Math.min(
+            10,
+            driveCamDistance +
+              e.deltaY * 0.01
+          )
+        );
 
       return;
     }
 
-    if (firstPerson) return;
+    /*
+     * First Person zoom نداریم.
+     */
+    if (firstPerson) {
+      return;
+    }
 
-    camDistance = Math.max(
-      3,
-      Math.min(
-        15,
-        camDistance + e.deltaY * 0.01
-      )
-    );
+    camDistance =
+      Math.max(
+        3,
+        Math.min(
+          15,
+          camDistance +
+            e.deltaY * 0.01
+        )
+      );
   },
-  { passive: true }
+  {
+    passive: true,
+  }
 );
 
 /* =========================================================
- * KEYBOARD
+ * KEYBOARD CAMERA
  * ========================================================= */
 
-window.addEventListener('keydown', (e) => {
-  if (
-    e.key.toLowerCase() === 'c' &&
-    !vehicles.isDriving()
-  ) {
-    firstPerson = !firstPerson;
+window.addEventListener(
+  'keydown',
+  (e) => {
+    const key =
+      e.key.toLowerCase();
 
-    if (firstPerson) {
-      camPitch = Math.max(
-        -1.5,
-        Math.min(1.5, camPitch)
-      );
-    } else {
-      camPitch = Math.max(
-        -0.3,
-        Math.min(1.2, camPitch)
-      );
+    /*
+     * C = First / Third Person
+     */
+    if (
+      key === 'c' &&
+      !vehicles.isDriving()
+    ) {
+      firstPerson =
+        !firstPerson;
+
+      if (firstPerson) {
+        camPitch =
+          Math.max(
+            -1.5,
+            Math.min(
+              1.5,
+              camPitch
+            )
+          );
+      } else {
+        camPitch =
+          Math.max(
+            -0.3,
+            Math.min(
+              1.2,
+              camPitch
+            )
+          );
+      }
+
+      applyFirstPersonVisibility();
     }
-
-    applyFirstPersonVisibility();
   }
-});
+);
 
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && isLocked) {
-    openMenu();
+window.addEventListener(
+  'keydown',
+  (e) => {
+    if (
+      e.key === 'Escape' &&
+      isLocked
+    ) {
+      openMenu();
+    }
   }
-});
+);
 
 /* =========================================================
  * SETTINGS MENU
  * ========================================================= */
 
 function openMenu() {
-  document.exitPointerLock();
+  if (!isMobile) {
+    document.exitPointerLock();
+  }
+
   menuEl.classList.add('open');
 }
 
 function closeMenu() {
-  menuEl.classList.remove('open');
+  menuEl.classList.remove(
+    'open'
+  );
 
-  if (isMobile) return;
+  if (isMobile) {
+    return;
+  }
 
   setTimeout(() => {
     canvas.focus();
+
     canvas.requestPointerLock();
   }, 200);
 }
 
 if (closeBtn) {
-  closeBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    closeMenu();
-  });
+  closeBtn.addEventListener(
+    'click',
+    (e) => {
+      e.stopPropagation();
+
+      closeMenu();
+    }
+  );
 }
 
 if (sensInput && sensValue) {
-  sensInput.addEventListener('input', () => {
-    sensitivity = parseFloat(
-      sensInput.value
-    );
+  sensInput.addEventListener(
+    'input',
+    () => {
+      sensitivity =
+        parseFloat(
+          sensInput.value
+        );
 
-    sensValue.textContent =
-      sensitivity.toFixed(1);
-  });
-}
-
-/* =========================================================
- * CHARACTER SELECT
- * ========================================================= */
-
-const selectUI = new CharacterSelect(
-  assets,
-  async (letter) => {
-    try {
-      const {
-        model,
-        animations,
-      } = await assets.loadCharacter(
-        `/models/characters/character-${letter}.glb`
-      );
-
-      player.setModel(
-        model,
-        animations
-      );
-
-      findPlayerParts();
-      applyFirstPersonVisibility();
-
-      if (!isMobile) {
-        canvas.focus();
-        canvas.requestPointerLock();
-      }
-    } catch (err) {
-      console.error(
-        '[CharacterSelect]',
-        err
-      );
+      sensValue.textContent =
+        sensitivity.toFixed(1);
     }
-  }
-);
-
-/* =========================================================
- * CAR
- * ========================================================= */
-function enterCar() {
-  if (vehicles.isDriving()) return;
-
-  const pos =
-    player.getPosition();
-
-  const v =
-    vehicles.findNearestVehicle(
-      pos,
-      4
-    );
-
-  if (!v) {
-    return;
-  }
-
-  if (!vehicles.enterVehicle(v)) {
-    return;
-  }
-
-  firstPersonBeforeDriving =
-    firstPerson;
-
-  firstPerson = false;
-
-  player.mesh.visible = false;
-
-  player.body.collisionResponse =
-    false;
-
-  player.body.velocity.set(
-    0,
-    0,
-    0
-  );
-
-  const vp =
-    v.getPosition();
-
-  player.body.position.set(
-    vp.x,
-    vp.y + 1,
-    vp.z
-  );
-
-  driveCamYaw =
-    Math.atan2(
-      -v.getForwardVector().x,
-      -v.getForwardVector().z
-    );
-
-  driveCamPitch = 0.20;
-
-  dashboard.show();
-
-  mobileControls.setDriving(
-    true
-  );
-
-  /*
-   * وقتی داخل ماشینیم،
-   * دکمه باید «پیاده شدن» باشد.
-   */
-  mobileControls.setInteractable(
-    true
-  );
-}
-function exitCar() {
-  if (!vehicles.isDriving()) {
-    return;
-  }
-
-  const v =
-    vehicles.activeVehicle;
-
-  vehicles.exitVehicle();
-
-  firstPerson =
-    firstPersonBeforeDriving;
-
-  applyFirstPersonVisibility();
-
-  player.mesh.visible = true;
-
-  player.body.collisionResponse =
-    true;
-
-  if (v) {
-    const vp =
-      v.getPosition();
-
-    const forward =
-      v.getForwardVector();
-
-    player.body.position.set(
-      vp.x -
-        forward.x * 2.5,
-      vp.y + 1,
-      vp.z -
-        forward.z * 2.5
-    );
-
-    player.body.velocity.set(
-      0,
-      0,
-      0
-    );
-  }
-
-  dashboard.hide();
-
-  mobileControls.setDriving(
-    false
-  );
-
-  /*
-   * بعد از پیاده شدن فقط اگر
-   * دوباره کنار ماشین باشیم
-   * دکمه ظاهر می‌شود.
-   */
-  updateMobileInteraction();
-}
-
-/* =========================================================
- * MOBILE VEHICLE INTERACTION
- * ========================================================= */
-
-function updateMobileInteraction() {
-  if (!isMobile) return;
-
-  if (vehicles.isDriving()) {
-    mobileControls.setInteractable(
-      true
-    );
-
-    return;
-  }
-
-  const playerPos =
-    player.getPosition();
-
-  const nearest =
-    vehicles.findNearestVehicle(
-      playerPos,
-      4
-    );
-
-  mobileControls.setInteractable(
-    !!nearest
   );
 }
 
@@ -529,27 +494,58 @@ function updateMobileInteraction() {
 
 const keys = {};
 
-window.addEventListener('keydown', (e) => {
-  const k =
-    e.key.toLowerCase();
+window.addEventListener(
+  'keydown',
+  (e) => {
+    const key =
+      e.key.toLowerCase();
 
-  keys[k] = true;
+    keys[key] = true;
 
-  if (k === 'e') {
-    if (vehicles.isDriving()) {
-      exitCar();
-    } else {
-      enterCar();
+    /*
+     * E:
+     * Enter / Exit vehicle
+     */
+    if (key === 'e') {
+      if (vehicles.isDriving()) {
+        exitCar();
+      } else {
+        enterCar();
+      }
     }
   }
-});
+);
 
-window.addEventListener('keyup', (e) => {
-  const k =
-    e.key.toLowerCase();
+window.addEventListener(
+  'keyup',
+  (e) => {
+    const key =
+      e.key.toLowerCase();
 
-  keys[k] = false;
-});
+    keys[key] = false;
+  }
+);
+
+/* =========================================================
+ * MOBILE VEHICLE INPUT
+ * ========================================================= */
+
+/*
+ * این دو مقدار مستقل از input بازیکن هستند.
+ *
+ * gas:
+ *   گاز
+ *
+ * brake:
+ *   ترمز واقعی
+ *
+ * steering:
+ *   -1 = راست
+ *    0 = صاف
+ *   +1 = چپ
+ */
+let mobileVehicleGas = false;
+let mobileVehicleBrake = false;
 
 /* =========================================================
  * MOBILE CONTROLS
@@ -557,6 +553,10 @@ window.addEventListener('keyup', (e) => {
 
 const mobileControls =
   new MobileControls({
+    /* -----------------------------------------------------
+     * ENTER / EXIT VEHICLE
+     * ----------------------------------------------------- */
+
     onEnterExit: () => {
       if (vehicles.isDriving()) {
         exitCar();
@@ -565,32 +565,57 @@ const mobileControls =
       }
     },
 
-    onCamera: () => {
-      if (vehicles.isDriving()) return;
+    /* -----------------------------------------------------
+     * CAMERA BUTTON
+     * ----------------------------------------------------- */
 
-      firstPerson = !firstPerson;
+    onCamera: () => {
+      /*
+       * در ماشین دوربین با Drag کنترل می‌شود.
+       */
+      if (vehicles.isDriving()) {
+        return;
+      }
+
+      firstPerson =
+        !firstPerson;
 
       if (firstPerson) {
-        camPitch = Math.max(
-          -1.5,
-          Math.min(1.5, camPitch)
-        );
+        camPitch =
+          Math.max(
+            -1.5,
+            Math.min(
+              1.5,
+              camPitch
+            )
+          );
       } else {
-        camPitch = Math.max(
-          -0.3,
-          Math.min(1.2, camPitch)
-        );
+        camPitch =
+          Math.max(
+            -0.3,
+            Math.min(
+              1.2,
+              camPitch
+            )
+          );
       }
 
       applyFirstPersonVisibility();
     },
 
+    /* -----------------------------------------------------
+     * FULLSCREEN
+     * ----------------------------------------------------- */
+
     onFullscreen: async () => {
       try {
-        if (!document.fullscreenElement) {
-          await document.documentElement.requestFullscreen({
-            navigationUI: 'hide',
-          });
+        if (
+          !document.fullscreenElement
+        ) {
+          await document.documentElement
+            .requestFullscreen({
+              navigationUI: 'hide',
+            });
         }
 
         if (
@@ -602,7 +627,10 @@ const mobileControls =
               'landscape'
             );
           } catch {
-            // Safari/iOS و بعضی مرورگرها اجازه نمی‌دهند
+            /*
+             * بعضی مرورگرها اجازه
+             * orientation lock نمی‌دهند.
+             */
           }
         }
       } catch (err) {
@@ -613,151 +641,569 @@ const mobileControls =
       }
     },
 
+    /* -----------------------------------------------------
+     * JUMP
+     * ----------------------------------------------------- */
+
     onJump: () => {
       /*
-       * Jump را از input واقعی Player عبور می‌دهیم.
-       * اگر Player از space استفاده کند، همین کافی است.
+       * Player.setInput() کلید Space را
+       * به عنوان Jump می‌شناسد.
+       *
+       * BUG قبلی:
+       * mobileControls.key
+       *
+       * درست:
+       * mobileControls.keys
        */
-      mobileControls.keys.space = true;
+
+      mobileControls.keys[' '] = true;
 
       setTimeout(() => {
-        mobileControls.keys.space = false;
-      }, 80);
+        mobileControls.keys[' '] = false;
+      }, 100);
     },
+
+    /* -----------------------------------------------------
+     * SPRINT
+     * ----------------------------------------------------- */
 
     onSprintChange: (active) => {
-      mobileControls.keys.shift = active;
+      mobileControls.keys.shift =
+        !!active;
     },
 
-    onLook: (dx, dy) => {
-      if (vehicles.isDriving()) {
-        driveCamYaw -= dx * sensitivity * 0.004;
-        driveCamPitch += dy * sensitivity * 0.004;
+    /* -----------------------------------------------------
+     * CAMERA LOOK
+     * ----------------------------------------------------- */
 
-        driveCamPitch = Math.max(
-          -0.3,
-          Math.min(1.2, driveCamPitch)
-        );
+    onLook: (dx, dy) => {
+      /*
+       * وقتی داخل ماشین هستیم:
+       * Drag سمت راست/چپ = چرخاندن دوربین ماشین
+       */
+      if (vehicles.isDriving()) {
+        driveCamYaw -=
+          dx *
+          sensitivity *
+          0.004;
+
+        driveCamPitch +=
+          dy *
+          sensitivity *
+          0.004;
+
+        driveCamPitch =
+          Math.max(
+            -0.3,
+            Math.min(
+              1.2,
+              driveCamPitch
+            )
+          );
 
         return;
       }
 
-      camYaw -= dx * sensitivity * 0.004;
-      camPitch += dy * sensitivity * 0.004;
+      /*
+       * دوربین بازیکن
+       */
+      camYaw -=
+        dx *
+        sensitivity *
+        0.004;
+
+      camPitch +=
+        dy *
+        sensitivity *
+        0.004;
 
       if (firstPerson) {
-        camPitch = Math.max(
-          -1.5,
-          Math.min(1.5, camPitch)
-        );
+        camPitch =
+          Math.max(
+            -1.5,
+            Math.min(
+              1.5,
+              camPitch
+            )
+          );
       } else {
-        camPitch = Math.max(
-          -0.3,
-          Math.min(1.2, camPitch)
-        );
+        camPitch =
+          Math.max(
+            -0.3,
+            Math.min(
+              1.2,
+              camPitch
+            )
+          );
       }
     },
+
+    /* -----------------------------------------------------
+     * VEHICLE GAS
+     * ----------------------------------------------------- */
+
+    onVehicleGas: (active) => {
+      mobileVehicleGas =
+        !!active;
+    },
+
+    /* -----------------------------------------------------
+     * VEHICLE BRAKE
+     * ----------------------------------------------------- */
+
+    onVehicleBrake: (active) => {
+      mobileVehicleBrake =
+        !!active;
+    },
   });
+
+/* =========================================================
+ * VEHICLE CONTROL RESET
+ * ========================================================= */
+
+function resetMobileVehicleInput() {
+  mobileVehicleGas = false;
+  mobileVehicleBrake = false;
+
+  /*
+   * MobileControls خودش فرمان را
+   * هنگام reset آزاد می‌کند.
+   */
+  if (
+    mobileControls &&
+    typeof mobileControls.resetVehicleControls ===
+      'function'
+  ) {
+    mobileControls.resetVehicleControls();
+  }
+}
+
+/* =========================================================
+ * CHARACTER SELECT
+ * ========================================================= */
+
+const selectUI =
+  new CharacterSelect(
+    assets,
+    async (letter) => {
+      try {
+        const {
+          model,
+          animations,
+        } =
+          await assets.loadCharacter(
+            `/models/characters/character-${letter}.glb`
+          );
+
+        player.setModel(
+          model,
+          animations
+        );
+
+        findPlayerParts();
+
+        applyFirstPersonVisibility();
+
+        if (!isMobile) {
+          canvas.focus();
+
+          canvas.requestPointerLock();
+        }
+      } catch (err) {
+        console.error(
+          '[CharacterSelect]',
+          err
+        );
+      }
+    }
+  );
+
+/* =========================================================
+ * ENTER CAR
+ * ========================================================= */
+
+function enterCar() {
+  /*
+   * اگر داخل ماشین هستیم،
+   * دوباره وارد ماشین نشو.
+   */
+  if (vehicles.isDriving()) {
+    return;
+  }
+
+  const playerPosition =
+    player.getPosition();
+
+  const vehicle =
+    vehicles.findNearestVehicle(
+      playerPosition,
+      4
+    );
+
+  if (!vehicle) {
+    return;
+  }
+
+  const entered =
+    vehicles.enterVehicle(
+      vehicle
+    );
+
+  if (!entered) {
+    return;
+  }
+
+  /*
+   * ذخیره دوربین بازیکن
+   */
+  firstPersonBeforeDriving =
+    firstPerson;
+
+  /*
+   * هنگام رانندگی Third Person
+   */
+  firstPerson = false;
+
+  /*
+   * بازیکن داخل ماشین دیده نشود.
+   */
+  player.mesh.visible = false;
+
+  /*
+   * بازیکن دیگر با world برخورد نکند.
+   */
+  player.body.collisionResponse =
+    false;
+
+  player.body.velocity.set(
+    0,
+    0,
+    0
+  );
+
+  /*
+   * بازیکن را روی ماشین نگه می‌داریم
+   * تا physics/controller آن را
+   * جابه‌جا نکند.
+   */
+  const vehiclePosition =
+    vehicle.getPosition();
+
+  player.body.position.set(
+    vehiclePosition.x,
+    vehiclePosition.y + 1,
+    vehiclePosition.z
+  );
+
+  /*
+   * جهت اولیه دوربین
+   * مطابق جهت ماشین.
+   */
+  driveCamYaw =
+    Math.atan2(
+      -vehicle
+        .getForwardVector()
+        .x,
+      -vehicle
+        .getForwardVector()
+        .z
+    );
+
+  driveCamPitch = 0.20;
+
+  /*
+   * فاصله دوربین را reset می‌کنیم.
+   */
+  driveCamDistance = 3.0;
+
+  /*
+   * مهم:
+   * هیچ ورودی قبلی ماشین نباید باقی بماند.
+   */
+  resetMobileVehicleInput();
+
+  /*
+   * Dashboard ماشین
+   */
+  dashboard.show();
+
+  /*
+   * Mobile UI -> Driving Mode
+   *
+   * در این حالت:
+   * - joystick بازیکن مخفی
+   * - jump مخفی
+   * - sprint مخفی
+   * - steering wheel نمایش داده می‌شود
+   * - gas نمایش داده می‌شود
+   * - brake نمایش داده می‌شود
+   */
+  mobileControls.setDriving(
+    true
+  );
+
+  /*
+   * دکمه تعامل:
+   * E / دکمه موبایل = EXIT
+   */
+  mobileControls.setInteractable(
+    true
+  );
+}
+
+/* =========================================================
+ * EXIT CAR
+ * ========================================================= */
+
+function exitCar() {
+  if (!vehicles.isDriving()) {
+    return;
+  }
+
+  const vehicle =
+    vehicles.activeVehicle;
+
+  /*
+   * اول همه inputهای موبایل را
+   * آزاد می‌کنیم تا ماشین بعد از خروج
+   * خودش به حرکت ادامه ندهد.
+   */
+  resetMobileVehicleInput();
+
+  /*
+   * خروج از VehicleManager
+   */
+  vehicles.exitVehicle();
+
+  /*
+   * Camera mode را برگردان.
+   */
+  firstPerson =
+    firstPersonBeforeDriving;
+
+  applyFirstPersonVisibility();
+
+  player.mesh.visible = true;
+
+  player.body.collisionResponse =
+    true;
+
+  /*
+   * بازیکن را پشت ماشین قرار بده.
+   */
+  if (vehicle) {
+    const vehiclePosition =
+      vehicle.getPosition();
+
+    const forward =
+      vehicle.getForwardVector();
+
+    player.body.position.set(
+      vehiclePosition.x -
+        forward.x * 2.5,
+      vehiclePosition.y + 1,
+      vehiclePosition.z -
+        forward.z * 2.5
+    );
+
+    player.body.velocity.set(
+      0,
+      0,
+      0
+    );
+  }
+
+  /*
+   * Dashboard مخفی
+   */
+  dashboard.hide();
+
+  /*
+   * Mobile UI -> Player Mode
+   */
+  mobileControls.setDriving(
+    false
+  );
+
+  /*
+   * بررسی اینکه دوباره کنار
+   * ماشین هستیم یا نه.
+   */
+  updateMobileInteraction();
+}
+
+/* =========================================================
+ * MOBILE VEHICLE INTERACTION
+ * ========================================================= */
+
+function updateMobileInteraction() {
+  if (!isMobile) {
+    return;
+  }
+
+  /*
+   * داخل ماشین:
+   * همیشه دکمه EXIT فعال است.
+   */
+  if (vehicles.isDriving()) {
+    mobileControls.setInteractable(
+      true
+    );
+
+    return;
+  }
+
+  /*
+   * بیرون ماشین:
+   * فقط وقتی نزدیک ماشین هستیم
+   * دکمه ENTER نمایش داده شود.
+   */
+  const playerPosition =
+    player.getPosition();
+
+  const nearestVehicle =
+    vehicles.findNearestVehicle(
+      playerPosition,
+      4
+    );
+
+  mobileControls.setInteractable(
+    !!nearestVehicle
+  );
+}
+
 /* =========================================================
  * RESIZE
  * ========================================================= */
 
-window.addEventListener('resize', () => {
-  camera.aspect =
-    window.innerWidth /
-    window.innerHeight;
+window.addEventListener(
+  'resize',
+  () => {
+    camera.aspect =
+      window.innerWidth /
+      window.innerHeight;
 
-  camera.updateProjectionMatrix();
+    camera.updateProjectionMatrix();
 
-  renderer.setSize(
-    window.innerWidth,
-    window.innerHeight,
-    false
-  );
-});
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight,
+      false
+    );
+  }
+);
 
 /* =========================================================
  * PLAYER CAMERA
  * ========================================================= */
 
 function updatePlayerCamera(dt) {
-  const pos =
+  const position =
     player.getPosition();
+
+  /* -------------------------------------------------------
+   * FIRST PERSON
+   * ------------------------------------------------------- */
 
   if (firstPerson) {
     const eyeY =
-      pos.y + EYE_HEIGHT;
+      position.y +
+      EYE_HEIGHT;
 
-    const cosP =
+    const cosPitch =
       Math.cos(camPitch);
 
     const dirX =
-      -Math.sin(camYaw) * cosP;
+      -Math.sin(camYaw) *
+      cosPitch;
 
     const dirY =
       -Math.sin(camPitch);
 
     const dirZ =
-      -Math.cos(camYaw) * cosP;
+      -Math.cos(camYaw) *
+      cosPitch;
 
     camera.position.set(
-      pos.x,
+      position.x,
       eyeY,
-      pos.z
+      position.z
     );
 
     camera.lookAt(
-      pos.x + dirX,
+      position.x + dirX,
       eyeY + dirY,
-      pos.z + dirZ
+      position.z + dirZ
     );
 
     return;
   }
 
-  const vel =
+  /* -------------------------------------------------------
+   * THIRD PERSON
+   * ------------------------------------------------------- */
+
+  const velocity =
     player.body.velocity;
 
   const speed =
     Math.hypot(
-      vel.x,
-      vel.z
+      velocity.x,
+      velocity.z
     );
 
   const speedRatio =
     Math.min(
       1,
-      speed / player.sprintSpeed
+      speed /
+        player.sprintSpeed
     );
+
+  /*
+   * نکته مهم:
+   *
+   * روی موبایل باید joystick را
+   * هم در wantsMove لحاظ کنیم.
+   */
+  const inputKeys =
+    isMobile
+      ? {
+          ...keys,
+          ...mobileControls.getKeys(),
+        }
+      : keys;
 
   const wantsMove =
     !!(
-      keys.w ||
-      keys.a ||
-      keys.s ||
-      keys.d
+      inputKeys.w ||
+      inputKeys.a ||
+      inputKeys.s ||
+      inputKeys.d
     );
 
-  const targetDist =
+  const targetDistance =
     camDistance +
     speedRatio * 0.8 +
     (wantsMove ? 0.2 : 0);
 
   cameraDistanceSmooth +=
     (
-      targetDist -
+      targetDistance -
       cameraDistanceSmooth
     ) *
     (
       1 -
-      Math.exp(-8 * dt)
+      Math.exp(
+        -8 * dt
+      )
     );
 
   const target =
     new THREE.Vector3(
-      pos.x,
-      pos.y + 1.0,
-      pos.z
+      position.x,
+      position.y + 1.0,
+      position.z
     );
 
   const cosPitch =
@@ -787,7 +1233,10 @@ function updatePlayerCamera(dt) {
 
   camera.position.lerp(
     desired,
-    1 - Math.exp(-12 * dt)
+    1 -
+      Math.exp(
+        -12 * dt
+      )
   );
 
   camera.lookAt(target);
@@ -798,48 +1247,67 @@ function updatePlayerCamera(dt) {
  * ========================================================= */
 
 function updateDrivingCamera(dt) {
-  const v =
+  const vehicle =
     vehicles.activeVehicle;
 
-  if (!v) return;
+  if (!vehicle) {
+    return;
+  }
 
-  const vp =
-    v.getPosition();
+  const vehiclePosition =
+    vehicle.getPosition();
 
+  /*
+   * نقطه‌ای که دوربین به آن نگاه می‌کند.
+   */
   const target =
     new THREE.Vector3(
-      vp.x,
-      vp.y + 0.7,
-      vp.z
+      vehiclePosition.x,
+      vehiclePosition.y + 0.7,
+      vehiclePosition.z
     );
 
-  const horizDist =
+  const horizontalDistance =
     driveCamDistance *
-    Math.cos(driveCamPitch);
+    Math.cos(
+      driveCamPitch
+    );
 
-  const ox =
-    Math.sin(driveCamYaw) *
-    horizDist;
+  const offsetX =
+    Math.sin(
+      driveCamYaw
+    ) *
+    horizontalDistance;
 
-  const oz =
-    Math.cos(driveCamYaw) *
-    horizDist;
+  const offsetZ =
+    Math.cos(
+      driveCamYaw
+    ) *
+    horizontalDistance;
 
-  const oy =
+  const offsetY =
     driveCamDistance *
-    Math.sin(driveCamPitch) +
+    Math.sin(
+      driveCamPitch
+    ) +
     0.8;
 
   const desired =
     new THREE.Vector3(
-      vp.x + ox,
-      vp.y + oy,
-      vp.z + oz
+      vehiclePosition.x +
+        offsetX,
+      vehiclePosition.y +
+        offsetY,
+      vehiclePosition.z +
+        offsetZ
     );
 
   camera.position.lerp(
     desired,
-    1 - Math.exp(-15 * dt)
+    1 -
+      Math.exp(
+        -15 * dt
+      )
   );
 
   camera.lookAt(target);
@@ -857,11 +1325,13 @@ let lastChunkCheck = 0;
 let gameStarted = false;
 
 function animate() {
-  if (gameStarted === false) {
+  if (!gameStarted) {
     return;
   }
 
-  requestAnimationFrame(animate);
+  requestAnimationFrame(
+    animate
+  );
 
   const now =
     performance.now();
@@ -874,16 +1344,29 @@ function animate() {
 
   last = now;
 
+  /* =====================================================
+   * CHARACTER SELECT UPDATE
+   * ===================================================== */
+
   if (!selectUI.isHidden) {
     selectUI.update(dt);
   }
 
+  /* =====================================================
+   * DRIVING STATE
+   * ===================================================== */
+
   const driving =
     vehicles.isDriving();
 
+  /* =====================================================
+   * MOBILE INTERACTION
+   * ===================================================== */
+
   if (
     isMobile &&
-    now - lastChunkCheck > 100
+    now - lastChunkCheck >
+      100
   ) {
     updateMobileInteraction();
   }
@@ -892,7 +1375,17 @@ function animate() {
    * INPUT
    * ===================================================== */
 
-  if (isLocked || isMobile) {
+  if (
+    isLocked ||
+    isMobile
+  ) {
+    /*
+     * Desktop:
+     * فقط keyboard
+     *
+     * Mobile:
+     * keyboard + mobile controls
+     */
     const inputKeys =
       isMobile
         ? {
@@ -901,20 +1394,79 @@ function animate() {
           }
         : keys;
 
+    /* ===================================================
+     * VEHICLE INPUT
+     * =================================================== */
+
     if (driving) {
-      const v =
+      const vehicle =
         vehicles.activeVehicle;
 
-      if (v) {
-        v.setInput(
-          inputKeys,
-          v.getForwardSpeed(),
+      if (vehicle) {
+        /*
+         * ورودی ماشین موبایل
+         *
+         * w:
+         *   gas
+         *
+         * brake:
+         *   ترمز واقعی
+         *
+         * steeringOverride:
+         *   فرمان لمسی
+         */
+        const vehicleInput = {
+          ...inputKeys,
+
+          /*
+           * گاز موبایل
+           */
+          w:
+            isMobile
+              ? mobileVehicleGas
+              : inputKeys.w,
+
+          /*
+           * ترمز موبایل
+           *
+           * توجه:
+           * این با S فرق دارد.
+           * S دسکتاپ همچنان Reverse است.
+           */
+          brake:
+            isMobile
+              ? mobileVehicleBrake
+              : !!inputKeys.brake,
+        };
+
+        /*
+         * steering:
+         *
+         * موبایل:
+         * MobileControls.getSteering()
+         *
+         * دسکتاپ:
+         * null -> Vehicle خودش A/D را می‌خواند
+         */
+        const steeringOverride =
           isMobile
             ? mobileControls.getSteering()
-            : null
+            : null;
+
+        vehicle.setInput(
+          vehicleInput,
+          vehicle.getForwardSpeed(),
+          steeringOverride,
+          dt
         );
       }
-    } else {
+    }
+
+    /* ===================================================
+     * PLAYER INPUT
+     * =================================================== */
+
+    else {
       player.setInput(
         inputKeys,
         camYaw
@@ -938,21 +1490,25 @@ function animate() {
    * ===================================================== */
 
   if (driving) {
-    const v =
+    const vehicle =
       vehicles.activeVehicle;
 
-    if (v) {
-      v.update(dt);
+    if (vehicle) {
+      vehicle.update(dt);
     }
   } else {
     player.syncVisual(dt);
 
     if (firstPerson) {
       player.mesh.rotation.y =
-        camYaw + Math.PI;
+        camYaw +
+        Math.PI;
     }
   }
 
+  /*
+   * VehicleManager update
+   */
   vehicles.update(dt);
 
   /* =====================================================
@@ -962,15 +1518,15 @@ function animate() {
   if (driving) {
     updateDrivingCamera(dt);
 
-    const v =
+    const vehicle =
       vehicles.activeVehicle;
 
-    if (v) {
+    if (vehicle) {
       dashboard.update(
-        v.getSpeed(),
-        v.getForwardSpeed(),
-        v.getCurrentGear(),
-        v.gears
+        vehicle.getSpeed(),
+        vehicle.getForwardSpeed(),
+        vehicle.getCurrentGear(),
+        vehicle.gears
       );
     }
   } else if (
@@ -984,62 +1540,78 @@ function animate() {
    * WORLD CHUNKS
    * ===================================================== */
 
-if (
-  now - lastChunkCheck >
-  250
-) {
-  lastChunkCheck = now;
-
-  if (isMobile) {
-    updateMobileInteraction();
-  }
-
   if (
+    now - lastChunkCheck >
+    250
+  ) {
+    lastChunkCheck = now;
+
+    if (isMobile) {
+      updateMobileInteraction();
+    }
+
+    /* ---------------------------------------------------
+     * Driving
+     * --------------------------------------------------- */
+
+    if (
       driving &&
       vehicles.activeVehicle
     ) {
-      const carPos =
+      const vehiclePosition =
         vehicles.activeVehicle
           .getPosition();
-  
-      world.city.updatePlayerPosition(
+
+      const cityPosition =
         new THREE.Vector3(
-          carPos.x,
+          vehiclePosition.x,
           0,
-          carPos.z
-        )
+          vehiclePosition.z
+        );
+
+      world.city.updatePlayerPosition(
+        cityPosition
       );
-  
+
       vehicles.updateChunks(
-        carPos.x,
-        carPos.z,
+        vehiclePosition.x,
+        vehiclePosition.z,
         world.city.chunkSize,
         world.city.renderDistance
       );
-    } else {
-      const playerPos =
+    }
+
+    /* ---------------------------------------------------
+     * Walking
+     * --------------------------------------------------- */
+
+    else {
+      const playerPosition =
         player.body.position;
-  
-      world.city.updatePlayerPosition(
+
+      const cityPosition =
         new THREE.Vector3(
-          playerPos.x,
+          playerPosition.x,
           0,
-          playerPos.z
-        )
+          playerPosition.z
+        );
+
+      world.city.updatePlayerPosition(
+        cityPosition
       );
-  
+
       vehicles.updateChunks(
-        playerPos.x,
-        playerPos.z,
+        playerPosition.x,
+        playerPosition.z,
         world.city.chunkSize,
         world.city.renderDistance
       );
-  
+
       vehicles.updateActive(
         new THREE.Vector3(
-          playerPos.x,
+          playerPosition.x,
           0,
-          playerPos.z
+          playerPosition.z
         )
       );
     }
@@ -1059,14 +1631,19 @@ if (
  * MOBILE ORIENTATION GATE
  * ========================================================= */
 
-let mobileOrientationMessage = null;
+let mobileOrientationMessage =
+  null;
 
 function showPortraitBlocker() {
-  if (!isMobile) return;
+  if (!isMobile) {
+    return;
+  }
 
   if (!mobileOrientationMessage) {
     mobileOrientationMessage =
-      document.createElement('div');
+      document.createElement(
+        'div'
+      );
 
     mobileOrientationMessage.id =
       'mobile-orientation-blocker';
@@ -1126,7 +1703,8 @@ function hidePortraitBlocker() {
  * GAME INITIALIZATION
  * ========================================================= */
 
-let initializationStarted = false;
+let initializationStarted =
+  false;
 
 async function startGame() {
   if (initializationStarted) {
@@ -1135,13 +1713,14 @@ async function startGame() {
 
   /*
    * روی موبایل عمودی:
-   * اصلاً بازی را Load نکن.
+   * اصلاً بازی Load نمی‌شود.
    */
   if (
     isMobile &&
     !isLandscape()
   ) {
     showPortraitBlocker();
+
     return;
   }
 
@@ -1160,16 +1739,17 @@ async function startGame() {
       '[Main] World loaded.'
     );
 
-    const p =
+    const playerPosition =
       player.body.position;
 
-    await world.city.updatePlayerPosition(
-      new THREE.Vector3(
-        p.x,
-        0,
-        p.z
-      )
-    );
+    await world.city
+      .updatePlayerPosition(
+        new THREE.Vector3(
+          playerPosition.x,
+          0,
+          playerPosition.z
+        )
+      );
 
     console.log(
       '[Main] Loading vehicles...'
@@ -1182,12 +1762,15 @@ async function startGame() {
     );
 
     vehicles.updateChunks(
-      p.x,
-      p.z,
+      playerPosition.x,
+      playerPosition.z,
       world.city.chunkSize,
       world.city.renderDistance
     );
 
+    /*
+     * Initial player camera
+     */
     firstPerson = true;
 
     applyFirstPersonVisibility();
@@ -1216,16 +1799,14 @@ async function startGame() {
       err
     );
 
-    /*
-     * اگر Load شکست خورد، بازی را الکی
-     * با world ناقص اجرا نکن.
-     */
     loadingEl.classList.add(
       'hidden'
     );
 
     const errorEl =
-      document.createElement('div');
+      document.createElement(
+        'div'
+      );
 
     errorEl.textContent =
       'خطا در بارگذاری بازی. کنسول مرورگر را بررسی کنید.';
@@ -1266,14 +1847,15 @@ window.addEventListener(
         !isLandscape()
       ) {
         showPortraitBlocker();
+
         return;
       }
 
       hidePortraitBlocker();
 
       /*
-       * اگر قبلاً Load نشده بود،
-       * الان که گوشی افقی شده شروع کن.
+       * اگر هنوز بازی شروع نشده،
+       * بعد از افقی شدن شروعش کن.
        */
       if (!gameStarted) {
         startGame();
@@ -1281,6 +1863,10 @@ window.addEventListener(
     }, 150);
   }
 );
+
+/* =========================================================
+ * RESIZE / ORIENTATION
+ * ========================================================= */
 
 window.addEventListener(
   'resize',
@@ -1323,6 +1909,8 @@ window.__renderer = renderer;
 window.__physics = physics;
 window.__keys = keys;
 window.__vehicles = vehicles;
+window.__mobileControls =
+  mobileControls;
 
 window.__getLocked =
   () => isLocked;
@@ -1335,3 +1923,11 @@ window.__enterCar =
 
 window.__exitCar =
   exitCar;
+
+window.__getMobileVehicleInput =
+  () => ({
+    gas: mobileVehicleGas,
+    brake: mobileVehicleBrake,
+    steering:
+      mobileControls.getSteering(),
+  });
