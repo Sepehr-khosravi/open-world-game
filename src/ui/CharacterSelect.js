@@ -1,3 +1,5 @@
+// src/ui/CharacterSelect.js
+
 import * as THREE from 'three';
 
 export class CharacterSelect {
@@ -5,60 +7,78 @@ export class CharacterSelect {
     this.loader = assetLoader;
     this.onStart = onStart;
 
-    this.letters =
-      'abcdefghijklmnopqr'.split('');
-
+    this.letters = 'abcdefghijklmnopqr'.split('');
     this.index = 0;
+    this.models = new Map();
+    this.loading = false;
 
-    this.models =
-      new Map();
-
-    this.loading =
-      false;
-
-    this.root =
-      document.getElementById(
-        'character-select'
-      );
+    this.root = document.getElementById('character-select');
 
     if (!this.root) {
-      throw new Error(
-        '#character-select پیدا نشد.'
-      );
+      throw new Error('#character-select پیدا نشد.');
     }
 
     this.buildUI();
 
-    this.canvas =
-      document.getElementById(
-        'preview-canvas'
-      );
-
-    this.nameEl =
-      document.getElementById(
-        'char-name'
-      );
-
-    this.prevBtn =
-      document.getElementById(
-        'prev-char'
-      );
-
-    this.nextBtn =
-      document.getElementById(
-        'next-char'
-      );
-
-    this.startBtn =
-      document.getElementById(
-        'start-btn'
-      );
+    this.canvas = document.getElementById('preview-canvas');
+    this.nameEl = document.getElementById('char-name');
+    this.prevBtn = document.getElementById('prev-char');
+    this.nextBtn = document.getElementById('next-char');
+    this.startBtn = document.getElementById('start-btn');
 
     this._setupRenderer();
     this._setupScene();
     this._bind();
 
+    // مخفی کردن GUI بازی هنگام ورود به این صفحه
+    this._hideGameGUI();
+
     this._loadCurrent();
+  }
+
+  /* ======================================================
+   * HIDE / SHOW GAME GUI
+   * ====================================================== */
+
+  _hideGameGUI() {
+    document.body.classList.add('cs-gui-hidden');
+
+    // اطمینان: به‌صورت مستقیم هم مخفی کن
+    const ids = [
+      'mobile-controls',
+      'fps-display',
+      'help',
+      'settings-menu',
+      'weapon-wheel',
+    ];
+
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.dataset.csWasHidden = el.style.display || '';
+        el.style.display = 'none';
+      }
+    });
+  }
+
+  _showGameGUI() {
+    document.body.classList.remove('cs-gui-hidden');
+
+    const ids = [
+      'mobile-controls',
+      'fps-display',
+      'help',
+      'settings-menu',
+      'weapon-wheel',
+    ];
+
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.display = el.dataset.csWasHidden || '';
+        delete el.dataset.csWasHidden;
+      }
+    });
   }
 
   /* ======================================================
@@ -72,119 +92,70 @@ export class CharacterSelect {
       <div class="character-select-panel">
 
         <div class="character-select-header">
-
           <div>
-            <div class="character-select-kicker">
-              CITY
-            </div>
-
-            <h1>
-              انتخاب کاراکتر
-            </h1>
-
-            <p>
-              کاراکتر خودت را انتخاب کن و وارد شهر شو.
-            </p>
+            <div class="character-select-kicker">CITY</div>
+            <h1>انتخاب کاراکتر</h1>
+            <p>کاراکتر خودت را انتخاب کن و وارد شهر شو.</p>
           </div>
 
           <div class="character-select-counter">
-            <span id="character-current">
-              01
-            </span>
-
-            <span class="character-counter-line">
-              /
-            </span>
-
-            <span>
-              ${String(this.letters.length).padStart(2, '0')}
-            </span>
+            <span id="character-current">01</span>
+            <span class="character-counter-line">/</span>
+            <span>${String(this.letters.length).padStart(2, '0')}</span>
           </div>
-
         </div>
 
         <div class="character-select-content">
 
           <div class="character-preview-card">
-
             <div class="character-preview-glow"></div>
-
-            <canvas
-              id="preview-canvas"
-            ></canvas>
-
+            <canvas id="preview-canvas"></canvas>
             <div class="character-loading">
               <span></span>
               <span></span>
               <span></span>
             </div>
-
           </div>
 
           <div class="character-info">
-
-            <div class="character-info-label">
-              CHARACTER
-            </div>
-
-            <div
-              id="char-name"
-              class="character-name"
-            >
-              Character A
-            </div>
-
+            <div class="character-info-label">CHARACTER</div>
+            <div id="char-name" class="character-name">Character A</div>
             <div class="character-info-line"></div>
-
             <p class="character-description">
-              این کاراکتر را انتخاب کن تا بازی
-              با همین شخصیت شروع شود.
+              این کاراکتر را انتخاب کن تا بازی با همین شخصیت شروع شود.
             </p>
-
-            <div class="character-navigation">
-
-              <button
-                id="prev-char"
-                class="character-nav-button"
-                type="button"
-              >
-                <span>‹</span>
-                قبلی
-              </button>
-
-              <button
-                id="next-char"
-                class="character-nav-button"
-                type="button"
-              >
-                بعدی
-                <span>›</span>
-              </button>
-
-            </div>
-
-            <button
-              id="start-btn"
-              class="character-start-button"
-              type="button"
-            >
-              <span>
-                شروع بازی
-              </span>
-
-              <strong>
-                →
-              </strong>
-            </button>
-
-            <div class="character-hint">
-              <span>←</span>
-              <span>→</span>
-              برای تغییر کاراکتر
-            </div>
-
           </div>
 
+        </div>
+
+        <!-- ===== 3 دکمه پایین صفحه ===== -->
+        <div class="character-mobile-actions">
+          <button
+            id="cs-prev"
+            class="cs-btn cs-btn-prev"
+            type="button"
+          >
+            <span>‹</span>
+            قبلی
+          </button>
+
+          <button
+            id="cs-select"
+            class="cs-btn cs-btn-select"
+            type="button"
+          >
+            ✓
+            انتخاب
+          </button>
+
+          <button
+            id="cs-next"
+            class="cs-btn cs-btn-next"
+            type="button"
+          >
+            بعدی
+            <span>›</span>
+          </button>
         </div>
 
       </div>
@@ -196,38 +167,23 @@ export class CharacterSelect {
    * ====================================================== */
 
   _setupRenderer() {
-    this.renderer =
-      new THREE.WebGLRenderer({
-        canvas: this.canvas,
-        antialias: true,
-        alpha: true,
-        powerPreference:
-          'high-performance',
-      });
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.canvas,
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
 
-    this.renderer.setPixelRatio(
-      Math.min(
-        window.devicePixelRatio,
-        2
-      )
-    );
-
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(
-      this.canvas.clientWidth ||
-        500,
-      this.canvas.clientHeight ||
-        500,
+      this.canvas.clientWidth || 500,
+      this.canvas.clientHeight || 500,
       false
     );
 
-    this.renderer.outputColorSpace =
-      THREE.SRGBColorSpace;
-
-    this.renderer.toneMapping =
-      THREE.ACESFilmicToneMapping;
-
-    this.renderer.toneMappingExposure =
-      1.1;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.1;
   }
 
   /* ======================================================
@@ -235,97 +191,33 @@ export class CharacterSelect {
    * ====================================================== */
 
   _setupScene() {
-    this.scene =
-      new THREE.Scene();
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+    this.camera.position.set(0, 1.4, 4);
+    this.camera.lookAt(0, 0.9, 0);
 
-    this.camera =
-      new THREE.PerspectiveCamera(
-        35,
-        1,
-        0.1,
-        100
-      );
+    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x182233, 2.0));
 
-    this.camera.position.set(
-      0,
-      1.4,
-      4
-    );
-
-    this.camera.lookAt(
-      0,
-      0.9,
-      0
-    );
-
-    this.scene.add(
-      new THREE.HemisphereLight(
-        0xffffff,
-        0x182233,
-        2.0
-      )
-    );
-
-    const key =
-      new THREE.DirectionalLight(
-        0xffffff,
-        2.5
-      );
-
-    key.position.set(
-      3,
-      5,
-      4
-    );
-
+    const key = new THREE.DirectionalLight(0xffffff, 2.5);
+    key.position.set(3, 5, 4);
     this.scene.add(key);
 
-    const rim =
-      new THREE.DirectionalLight(
-        0x88bbff,
-        1.5
-      );
-
-    rim.position.set(
-      -3,
-      3,
-      -4
-    );
-
+    const rim = new THREE.DirectionalLight(0x88bbff, 1.5);
+    rim.position.set(-3, 3, -4);
     this.scene.add(rim);
 
-    const floorGeo =
-      new THREE.CylinderGeometry(
-        1.35,
-        1.35,
-        0.12,
-        64
-      );
-
-    const floorMat =
-      new THREE.MeshStandardMaterial({
-        color: 0x152033,
-        roughness: 0.55,
-        metalness: 0.4,
-      });
-
-    const floor =
-      new THREE.Mesh(
-        floorGeo,
-        floorMat
-      );
-
-    floor.position.y =
-      -0.06;
-
+    const floorGeo = new THREE.CylinderGeometry(1.35, 1.35, 0.12, 64);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x152033,
+      roughness: 0.55,
+      metalness: 0.4,
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.position.y = -0.06;
     this.scene.add(floor);
 
-    this.modelGroup =
-      new THREE.Group();
-
-    this.scene.add(
-      this.modelGroup
-    );
+    this.modelGroup = new THREE.Group();
+    this.scene.add(this.modelGroup);
   }
 
   /* ======================================================
@@ -333,75 +225,53 @@ export class CharacterSelect {
    * ====================================================== */
 
   _bind() {
-    this.prevBtn.addEventListener(
-      'click',
-      () => this._navigate(-1)
-    );
+    const prev = document.getElementById('cs-prev');
+    const next = document.getElementById('cs-next');
+    const select = document.getElementById('cs-select');
 
-    this.nextBtn.addEventListener(
-      'click',
-      () => this._navigate(1)
-    );
+    const bindTap = (el, cb) => {
+      if (!el) return;
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        cb();
+      }, { passive: false });
+    };
 
-    this.startBtn.addEventListener(
-      'click',
-      () => this._start()
-    );
+    bindTap(prev, () => this._navigate(-1));
+    bindTap(next, () => this._navigate(1));
+    bindTap(select, () => this._start());
 
-    window.addEventListener(
-      'keydown',
-      (e) => {
-        if (
-          this.root.classList.contains(
-            'hidden'
-          )
-        ) {
-          return;
-        }
+    // دکمه‌های قدیمی داخل کارت preview (اگه وجود دارن)
+    this.prevBtn?.addEventListener('click', () => this._navigate(-1));
+    this.nextBtn?.addEventListener('click', () => this._navigate(1));
+    this.startBtn?.addEventListener('click', () => this._start());
 
-        if (
-          e.key === 'ArrowLeft' ||
-          e.key.toLowerCase() === 'a'
-        ) {
-          this._navigate(-1);
-        }
+    window.addEventListener('keydown', (e) => {
+      if (this.root.classList.contains('hidden')) return;
 
-        if (
-          e.key === 'ArrowRight' ||
-          e.key.toLowerCase() === 'd'
-        ) {
-          this._navigate(1);
-        }
-
-        if (e.key === 'Enter') {
-          this._start();
-        }
+      if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
+        this._navigate(-1);
       }
-    );
 
-    window.addEventListener(
-      'resize',
-      () => {
-        const w =
-          this.canvas.clientWidth ||
-          500;
-
-        const h =
-          this.canvas.clientHeight ||
-          500;
-
-        this.renderer.setSize(
-          w,
-          h,
-          false
-        );
-
-        this.camera.aspect =
-          w / h;
-
-        this.camera.updateProjectionMatrix();
+      if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
+        this._navigate(1);
       }
-    );
+
+      if (e.key === 'Enter') {
+        this._start();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      const w = this.canvas.clientWidth || 500;
+      const h = this.canvas.clientHeight || 500;
+
+      this.renderer.setSize(w, h, false);
+      this.camera.aspect = w / h;
+      this.camera.updateProjectionMatrix();
+    });
   }
 
   /* ======================================================
@@ -412,12 +282,7 @@ export class CharacterSelect {
     if (this.loading) return;
 
     this.index =
-      (
-        this.index +
-        dir +
-        this.letters.length
-      ) %
-      this.letters.length;
+      (this.index + dir + this.letters.length) % this.letters.length;
 
     await this._loadCurrent();
   }
@@ -427,78 +292,36 @@ export class CharacterSelect {
    * ====================================================== */
 
   async _loadCurrent() {
-    const letter =
-      this.letters[this.index];
+    const letter = this.letters[this.index];
+    const number = String(this.index + 1).padStart(2, '0');
 
-    const number =
-      String(
-        this.index + 1
-      ).padStart(2, '0');
+    const counter = document.getElementById('character-current');
+    if (counter) counter.textContent = number;
 
-    const counter =
-      document.getElementById(
-        'character-current'
-      );
-
-    if (counter) {
-      counter.textContent =
-        number;
-    }
-
-    this.nameEl.textContent =
-      `Character ${letter.toUpperCase()}`;
+    this.nameEl.textContent = `Character ${letter.toUpperCase()}`;
 
     this.loading = true;
-
-    this.root.classList.add(
-      'character-loading-active'
-    );
+    this.root.classList.add('character-loading-active');
 
     try {
-      if (
-        this.models.has(letter)
-      ) {
-        this._showModel(
-          this.models.get(letter)
-        );
-
+      if (this.models.has(letter)) {
+        this._showModel(this.models.get(letter));
         return;
       }
 
-      const {
-        model,
-        animations,
-      } =
-        await this.loader.loadCharacter(
-          `/models/characters/character-${letter}.glb`
-        );
+      const { model, animations } = await this.loader.loadCharacter(
+        `/models/characters/character-${letter}.glb`
+      );
 
       this._normalize(model);
 
-      this.models.set(
-        letter,
-        {
-          model,
-          animations,
-        }
-      );
-
-      this._showModel({
-        model,
-        animations,
-      });
+      this.models.set(letter, { model, animations });
+      this._showModel({ model, animations });
     } catch (err) {
-      console.error(
-        'خطا در لود مدل:',
-        letter,
-        err
-      );
+      console.error('خطا در لود مدل:', letter, err);
     } finally {
       this.loading = false;
-
-      this.root.classList.remove(
-        'character-loading-active'
-      );
+      this.root.classList.remove('character-loading-active');
     }
   }
 
@@ -507,46 +330,22 @@ export class CharacterSelect {
    * ====================================================== */
 
   _normalize(model) {
-    const box =
-      new THREE.Box3()
-        .setFromObject(model);
-
-    const size =
-      new THREE.Vector3();
-
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
     box.getSize(size);
 
-    if (
-      !size.y ||
-      size.y <= 0
-    ) {
-      return;
-    }
+    if (!size.y || size.y <= 0) return;
 
-    const scale =
-      1.8 / size.y;
+    const scale = 1.8 / size.y;
+    model.scale.setScalar(scale);
 
-    model.scale.setScalar(
-      scale
-    );
-
-    const box2 =
-      new THREE.Box3()
-        .setFromObject(model);
-
-    const center =
-      new THREE.Vector3();
-
+    const box2 = new THREE.Box3().setFromObject(model);
+    const center = new THREE.Vector3();
     box2.getCenter(center);
 
-    model.position.x -=
-      center.x;
-
-    model.position.z -=
-      center.z;
-
-    model.position.y -=
-      box2.min.y;
+    model.position.x -= center.x;
+    model.position.z -= center.z;
+    model.position.y -= box2.min.y;
   }
 
   /* ======================================================
@@ -554,27 +353,14 @@ export class CharacterSelect {
    * ====================================================== */
 
   _showModel(entry) {
-    const model =
-      entry.model || entry;
+    const model = entry.model || entry;
 
-    while (
-      this.modelGroup.children
-        .length > 0
-    ) {
-      this.modelGroup.remove(
-        this.modelGroup.children[0]
-      );
+    while (this.modelGroup.children.length > 0) {
+      this.modelGroup.remove(this.modelGroup.children[0]);
     }
 
-    model.rotation.set(
-      0,
-      0,
-      0
-    );
-
-    this.modelGroup.add(
-      model
-    );
+    model.rotation.set(0, 0, 0);
+    this.modelGroup.add(model);
   }
 
   /* ======================================================
@@ -584,12 +370,11 @@ export class CharacterSelect {
   _start() {
     if (this.loading) return;
 
-    const letter =
-      this.letters[this.index];
+    const letter = this.letters[this.index];
+    this.root.classList.add('hidden');
 
-    this.root.classList.add(
-      'hidden'
-    );
+    // دوباره GUI بازی رو روشن کن
+    this._showGameGUI();
 
     this.onStart(letter);
   }
@@ -599,26 +384,14 @@ export class CharacterSelect {
    * ====================================================== */
 
   update(dt) {
-    if (
-      this.root.classList.contains(
-        'hidden'
-      )
-    ) {
-      return;
-    }
+    if (this.root.classList.contains('hidden')) return;
 
-    this.modelGroup.rotation.y +=
-      dt * 0.45;
+    this.modelGroup.rotation.y += dt * 0.45;
 
-    this.renderer.render(
-      this.scene,
-      this.camera
-    );
+    this.renderer.render(this.scene, this.camera);
   }
 
   get isHidden() {
-    return this.root.classList.contains(
-      'hidden'
-    );
+    return this.root.classList.contains('hidden');
   }
 }

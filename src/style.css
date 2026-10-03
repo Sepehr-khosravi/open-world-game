@@ -2330,35 +2330,323 @@ body {
   }
 }
 
-
 /* =========================================================
-   CHARACTER SELECT MOBILE
+   CHARACTER SELECT — FULL SCREEN OVERLAY
    ========================================================= */
 
-@media
-(max-width: 700px),
-(pointer: coarse) {
+#character-select {
+  position: fixed;
+  inset: 0;
+  z-index: 50000; /* بالاتر از #mobile-controls (9999) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+  font-family: Inter, Arial, sans-serif;
+  color: #fff;
+  pointer-events: auto;
+}
 
+#character-select.hidden {
+  display: none !important;
+}
+
+/* وقتی این کلاس روی body باشه، GUI بازی مخفی می‌شه */
+body.cs-gui-hidden #mobile-controls,
+body.cs-gui-hidden #fps-display,
+body.cs-gui-hidden #help,
+body.cs-gui-hidden #settings-menu,
+body.cs-gui-hidden #weapon-wheel {
+  display: none !important;
+}
+
+.character-select-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 35%,
+      rgba(65, 110, 170, 0.25),
+      transparent 40%),
+    linear-gradient(135deg, #070b12, #101827 55%, #070b11);
+}
+
+.character-select-panel {
+  position: relative;
+  width: min(1050px, 100%);
+  max-height: 92vh;
+  padding: 30px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 26px;
+  background:
+    linear-gradient(145deg,
+      rgba(25,35,52,.92),
+      rgba(8,13,22,.94));
+  box-shadow: 0 30px 100px rgba(0,0,0,.65);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.character-select-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.character-select-kicker {
+  margin-bottom: 6px;
+  color: #79b7ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 4px;
+}
+
+.character-select-header h1 {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1.1;
+}
+
+.character-select-header p {
+  margin: 9px 0 0;
+  color: #8e9caf;
+  font-size: 14px;
+}
+
+.character-select-counter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #66758a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.character-select-counter span:first-child {
+  color: #fff;
+  font-size: 26px;
+}
+
+.character-counter-line {
+  opacity: .35;
+}
+
+.character-select-content {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.35fr)
+    minmax(260px, .65fr);
+  gap: 24px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+}
+
+.character-preview-card {
+  position: relative;
+  min-height: 400px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at center 42%,
+      rgba(78,128,190,.18),
+      transparent 48%),
+    #0a101b;
+}
+
+.character-preview-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to top,
+    rgba(4,7,12,.5),
+    transparent 35%);
+}
+
+#preview-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.character-preview-glow {
+  position: absolute;
+  width: 330px;
+  height: 330px;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(82,145,220,.12);
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+.character-loading {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  opacity: 0;
+  transition: opacity .2s;
+  pointer-events: none;
+}
+
+.character-loading-active .character-loading {
+  opacity: 1;
+}
+
+.character-loading span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #79b7ff;
+  animation: character-loading 1s infinite;
+}
+
+.character-loading span:nth-child(2) { animation-delay: .15s; }
+.character-loading span:nth-child(3) { animation-delay: .3s; }
+
+@keyframes character-loading {
+  0%, 100% { transform: translateY(0); opacity: .3; }
+  50% { transform: translateY(-5px); opacity: 1; }
+}
+
+.character-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 8px;
+}
+
+.character-info-label {
+  color: #718198;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 3px;
+}
+
+.character-name {
+  margin-top: 8px;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -.5px;
+}
+
+.character-info-line {
+  width: 48px;
+  height: 3px;
+  margin: 18px 0;
+  border-radius: 99px;
+  background: #79b7ff;
+}
+
+.character-description {
+  margin: 0;
+  color: #8794a7;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* =========================================================
+   THREE BIG BUTTONS
+   ========================================================= */
+
+.character-mobile-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: 12px;
+  margin-top: 6px;
+  pointer-events: auto;
+  z-index: 30;
+}
+
+.cs-btn {
+  min-height: 64px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 16px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  cursor: pointer;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform .12s ease, filter .15s ease, background .15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cs-btn span {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.cs-btn-prev {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.14);
+}
+
+.cs-btn-next {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.14);
+}
+
+.cs-btn-select {
+  background: linear-gradient(135deg, #4b8fd8, #6aaeff);
+  border: 0;
+  box-shadow: 0 12px 34px rgba(70,140,220,.28);
+  font-size: 16px;
+}
+
+.cs-btn:hover {
+  filter: brightness(1.08);
+}
+
+.cs-btn:active {
+  transform: scale(.96);
+}
+
+/* =========================================================
+   RESPONSIVE — CHARACTER SELECT
+   ========================================================= */
+
+@media (max-width: 900px), (pointer: coarse) {
   #character-select {
-    padding: 12px;
-    overflow-y: auto;
+    padding: 10px;
+    z-index: 50000;
   }
 
   .character-select-panel {
     max-height: 96vh;
-
-    padding: 20px;
-
+    padding: 16px;
     border-radius: 20px;
+    gap: 12px;
     overflow-y: auto;
   }
 
   .character-select-header {
-    margin-bottom: 12px;
+    margin-bottom: 4px;
   }
 
   .character-select-header h1 {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .character-select-header p {
@@ -2371,14 +2659,12 @@ body {
 
   .character-select-content {
     grid-template-columns: 1fr;
-    overflow-y: auto;
-    gap: 12px;
+    gap: 10px;
   }
 
   .character-preview-card {
-    min-height: 42vh;
-
-    max-height: 440px;
+    min-height: 34vh;
+    max-height: 42vh;
   }
 
   .character-info {
@@ -2386,76 +2672,40 @@ body {
   }
 
   .character-name {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .character-description {
     display: none;
   }
 
-  .character-navigation {
-    margin-bottom: 8px;
+  .character-info-line {
+    margin: 10px 0;
   }
 
-  .character-nav-button {
-    min-height: 44px;
+  .character-mobile-actions {
+    grid-template-columns: 1fr 1.3fr 1fr;
+    gap: 8px;
   }
 
-  .character-start-button {
-    min-height: 52px;
+  .cs-btn {
+    min-height: 56px;
+    font-size: 13px;
+    border-radius: 14px;
   }
 
-  .character-hint {
-    display: none;
+  .cs-btn-select {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 400px) {
+  .cs-btn {
+    min-height: 50px;
+    font-size: 12px;
   }
 
-  .mobile-left {
-    left: 14px;
-    bottom: 15px;
-  }
-
-  .mobile-right {
-    right: 14px;
-    bottom: 15px;
-  }
-
-  .mobile-joystick {
-    width: 118px;
-    height: 118px;
-  }
-
-  #mobile-controls.driving
-  .mobile-joystick {
-    width: 145px;
-    height: 145px;
-  }
-
-  #mobile-controls.driving
-  .mobile-joystick-ring {
-    width: 108px;
-    height: 108px;
-  }
-
-  .mobile-top-left {
-    left: 12px;
-    top: 12px;
-  }
-
-  .mobile-top-right {
-    right: 12px;
-    top: 12px;
-  }
-
-  .mobile-small-button {
-    min-width: 42px;
-    min-height: 42px;
-  }
-
-  .mobile-interact-button {
-    min-width: 105px;
-  }
-
-  .mobile-look-area {
-    width: 58%;
+  .cs-btn span {
+    font-size: 18px;
   }
 }
